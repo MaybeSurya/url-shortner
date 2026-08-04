@@ -1,0 +1,41 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+production-server/
+docs/api/static/
+
+# Dependencies
+node_modules/
+
+# Editor & OS files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Database & Storage
+db/*
+!db/.gitkeep
+dump.rdb
+
+# Logs & Temp
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Stitch AI & design scratchpad artifacts
+stitch_linearis_url_platform/
+.brain/
+scratch/

@@ -1,0 +1,31 @@
+# Koyeb deployment specification
+# https://www.koyeb.com/docs/build-and-deploy/deployment-methods/koyeb-yaml
+
+type: service
+name: surya-url-shortener
+
+definition:
+  name: surya-url-shortener
+  type: web
+  routes:
+    - path: /
+      port: 8080
+  ports:
+    - port: 8080
+      protocol: http
+  env:
+    - key: PORT
+      value: "8080"
+    - key: NODE_ENV
+      value: "production"
+    - key: TRUST_PROXY
+      value: "true"
+  health_checks:
+    - http:
+        path: /api/v2/health
+        port: 8080
+      initial_delay_seconds: 10
+      period_seconds: 30
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3

@@ -1,0 +1,66 @@
+<footer class="landing-footer" role="contentinfo">
+  <div class="footer-container">
+    <div class="footer-main">
+      <div class="footer-brand">
+        <a href="/" class="wordmark" aria-label="Surya's URL Shortening Service - Home">
+          <span class="wordmark-text">SURYA</span>
+        </a>
+        <p class="footer-tagline">Fast, reliable and privacy-focused link management.</p>
+      </div>
+      
+      <nav class="footer-links" aria-label="Footer navigation">
+        <div class="footer-column">
+          <h4 class="footer-heading">Product</h4>
+          <ul>
+            <li><a href="/login">Sign In</a></li>
+            {{#if docs_enabled}}
+            <li><a href="/docs">Documentation</a></li>
+            {{/if}}
+            <li><a href="/terms">Terms of Service</a></li>
+            <li><a href="/privacy">Privacy Policy</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-column">
+          <h4 class="footer-heading">Company</h4>
+          <ul>
+            <li><a href="https://maybesurya.com" target="_blank" rel="noopener noreferrer">Website</a></li>
+            <li><a href="https://github.com/maybesurya" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+            {{#if contact_email}}
+            <li><a href="mailto:{{contact_email}}">Email</a></li>
+            {{/if}}
+          </ul>
+        </div>
+        
+        <div class="footer-column">
+          <h4 class="footer-heading">Resources</h4>
+          <ul>
+            <li><a href="/report" target="_blank" rel="noopener noreferrer">Report Abuse</a></li>
+            <li><a href="/status" target="_blank" rel="noopener noreferrer">System Status</a></li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+    
+    <div class="footer-bottom">
+      <div class="footer-attribution">
+        <p>
+          This application is built upon the open-source <a href="https://github.com/thedevs-network/kutt" target="_blank" rel="noopener noreferrer">Kutt</a> project and has been extensively modified and customized for personal internal use.
+        </p>
+      </div>
+      
+      <div class="footer-legal">
+        <p>&copy; {{current_year}} Surya's URL Shortening Service. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const yearEl = document.querySelector('.footer-legal p');
+  if (yearEl) {
+    yearEl.textContent = yearEl.textContent.replace('{{current_year}}', new Date().getFullYear());
+  }
+});
+</script>

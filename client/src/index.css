@@ -1,0 +1,234 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   Lenis smooth scroll — global window smooth scroll
+   ───────────────────────────────────────────────────────────── */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Base tokens — Light & Refined Linear-style Dark Mode
+   ───────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Surfaces */
+    --color-surface: #f8fafc;
+    --color-surface-dim: #e2e8f0;
+    --color-surface-bright: #ffffff;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-low: #f1f5f9;
+    --color-surface-container: #e2e8f0;
+    --color-surface-container-high: #cbd5e1;
+    --color-surface-container-highest: #94a3b8;
+
+    /* On-surfaces */
+    --color-on-surface: #0f172a;
+    --color-on-surface-variant: #475569;
+    --color-inverse-surface: #1e293b;
+    --color-inverse-on-surface: #f8fafc;
+
+    /* Borders */
+    --color-outline: #cbd5e1;
+    --color-outline-variant: #e2e8f0;
+
+    /* Background */
+    --color-background: #f8fafc;
+    --color-on-background: #0f172a;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     Dark Mode — Linear / Raycast / Vercel Neutral Palette
+     (No harsh pitch black, no neon glows)
+     ───────────────────────────────────────────────────────────── */
+  .dark {
+    --color-surface: #0e0f12;
+    --color-surface-dim: #090a0c;
+    --color-surface-bright: #16181d;
+    --color-surface-container-lowest: #121418;
+    --color-surface-container-low: #171a20;
+    --color-surface-container: #1d2128;
+    --color-surface-container-high: #262b34;
+    --color-surface-container-highest: #313742;
+
+    --color-on-surface: #f3f4f6;
+    --color-on-surface-variant: #9ca3af;
+    --color-inverse-surface: #f9fafb;
+    --color-inverse-on-surface: #111827;
+
+    --color-outline: #374151;
+    --color-outline-variant: #262930;
+
+    --color-background: #0b0c0e;
+    --color-on-background: #f3f4f6;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     Global Resets
+     ───────────────────────────────────────────────────────────── */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    height: 100%;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    font-size: 14px;
+    line-height: 1.5;
+    background-color: var(--color-background);
+    color: var(--color-on-background);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tabular numbers utility
+   ───────────────────────────────────────────────────────────── */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Custom Scrollbar (Subtle & Refined)
+   ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 140, 160, 0.25);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 140, 160, 0.45);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Focus visible (keyboard navigation)
+   ───────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(82, 84, 232, 0.8);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Shimmer animation for skeleton
+   ───────────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-container-low) 25%,
+    var(--color-surface-container) 50%,
+    var(--color-surface-container-low) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Linear Card Inset Border Effect (Dark Mode)
+   ───────────────────────────────────────────────────────────── */
+.dark .card-etched {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Selection color
+   ───────────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(82, 84, 232, 0.25);
+  color: inherit;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Auth ambient background gradient
+   ───────────────────────────────────────────────────────────── */
+.auth-bg {
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1000px;
+  height: 1000px;
+  background: radial-gradient(circle at center, rgba(70, 72, 212, 0.12) 0%, rgba(70, 72, 212, 0.03) 45%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Data table styles
+   ───────────────────────────────────────────────────────────── */
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.data-table th {
+  user-select: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Reduced motion — disable all animations
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
