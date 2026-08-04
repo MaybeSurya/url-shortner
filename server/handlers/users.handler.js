@@ -48,6 +48,10 @@ async function removeByAdmin(req, res) {
       return res.status(400).send({ message });
     }
   }
+
+  if (user.id === req.user.id) {
+    throw new utils.CustomError("You cannot delete your own account using admin user deletion.", 400);
+  }
   
   await query.user.remove(user);
 

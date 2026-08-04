@@ -26,7 +26,14 @@ const createLink = [
     .isLength({ min: 1, max: 2040 })
     .withMessage("Maximum URL length is 2040.")
     .customSanitizer(utils.addProtocol)
-    .custom(value => utils.urlRegex.test(value) || /^(?!https?|ftp)(\w+:|\/\/)/.test(value))
+    .custom(value => {
+      try {
+        const parsed = new URL(value);
+        return ["http:", "https:", "mailto:", "tel:"].includes(parsed.protocol);
+      } catch {
+        return false;
+      }
+    })
     .withMessage("URL is not valid.")
     .custom(value => utils.removeWww(URL.parse(value).host) !== env.DEFAULT_DOMAIN)
     .withMessage(`${env.DEFAULT_DOMAIN} URLs are not allowed.`),

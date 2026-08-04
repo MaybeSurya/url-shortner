@@ -31,17 +31,24 @@ require("./passport");
 // create express app
 const app = express();
 
-// this tells the express app that it's running behind a proxy server
-// and thus it should get the IP address from the proxy server
+// Disable X-Powered-By header for security
+app.disable("x-powered-by");
+
+// express app setup
 if (env.TRUST_PROXY) {
   app.set("trust proxy", true);
 }
 
 app.use(compression());
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  frameguard: { action: "deny" },
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" }
+}));
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 // use cookie sessions only when OIDC is enabled
 // because only OIDC is using it

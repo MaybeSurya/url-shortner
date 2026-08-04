@@ -177,10 +177,14 @@ async function getAdmin(match, params) {
 }
 
 async function find(match) {
-  if (match.address && match.domain_id !== undefined && env.REDIS_ENABLED) {
-    const key = redis.key.link(match.address, match.domain_id);
-    const cachedLink = await redis.client.get(key);
-    if (cachedLink) return JSON.parse(cachedLink);
+  if (match.address && match.domain_id !== undefined && env.REDIS_ENABLED && redis.client && redis.client.status === "ready") {
+    try {
+      const key = redis.key.link(match.address, match.domain_id);
+      const cachedLink = await redis.client.get(key);
+      if (cachedLink) return JSON.parse(cachedLink);
+    } catch (err) {
+      console.error("[Redis] Cache read error:", err.message);
+    }
   }
   
   const link = await knex("links")
@@ -189,9 +193,13 @@ async function find(match) {
     .leftJoin("domains", "links.domain_id", "domains.id")
     .first();
   
-  if (link && env.REDIS_ENABLED) {
-    const key = redis.key.link(link.address, link.domain_id);
-    redis.client.set(key, JSON.stringify(link), "EX", 60 * 15);
+  if (link && env.REDIS_ENABLED && redis.client && redis.client.status === "ready") {
+    try {
+      const key = redis.key.link(link.address, link.domain_id);
+      await redis.client.set(key, JSON.stringify(link), "EX", 60 * 15);
+    } catch (err) {
+      console.error("[Redis] Cache write error:", err.message);
+    }
   }
   
   return link;

@@ -57,7 +57,7 @@ function setToken(res, token) {
 }
 
 function deleteCurrentToken(res) {
-  res.clearCookie("token", { httpOnly: true, secure: env.isProd });
+  res.clearCookie("token", { httpOnly: true, secure: env.isProd, sameSite: "Lax" });
 }
 
 function generateRandomPassword() {

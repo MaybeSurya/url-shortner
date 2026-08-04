@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight, Zap } from 'lucide-react';
@@ -16,8 +16,12 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { isAuthenticated, isLoading, refreshUser } = useAuth();
   const { siteName } = useConfig();
+
+  if (!isLoading && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const loginMutation = useMutation({
     mutationFn: authService.login,
