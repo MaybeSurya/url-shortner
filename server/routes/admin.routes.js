@@ -2,6 +2,7 @@ const { Router } = require("express");
 
 const asyncHandler = require("../utils/asyncHandler");
 const auth = require("../handlers/auth.handler");
+const redis = require("../redis");
 const env = require("../env");
 
 const router = Router();
@@ -52,6 +53,12 @@ router.get(
       },
       redis: {
         enabled: env.REDIS_ENABLED,
+        connected: !!(redis.client && (redis.client.status === "ready" || redis.client.status === "connect")),
+        status: !env.REDIS_ENABLED
+          ? "disabled"
+          : (redis.client && (redis.client.status === "ready" || redis.client.status === "connect"))
+          ? "ok"
+          : "warn",
         url_set: isSet(env.REDIS_URL),
         url_preview: env.REDIS_URL
           ? env.REDIS_URL.replace(/:[^:@]+@/, ":***@")

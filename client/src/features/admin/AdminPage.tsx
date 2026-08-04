@@ -62,35 +62,45 @@ const tabPane = {
 const StatCard: React.FC<{
   title: string;
   value: string | number;
-  icon: React.FC<{ className?: string }>;
-  color?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
   sub?: string;
-}> = ({ title, value, icon: Icon, color = 'text-primary bg-primary/10', sub }) => (
+}> = ({ title, value, icon: Icon, color, sub }) => (
   <Card>
-    <div className="flex items-start justify-between gap-3">
-      <div className="space-y-1 min-w-0">
-        <p className="text-xs text-on-surface-variant font-medium truncate">{title}</p>
-        <p className="text-2xl font-bold font-mono tracking-tight text-on-surface">{value}</p>
-        {sub && <p className="text-xs text-on-surface-variant">{sub}</p>}
-      </div>
-      <div className={clsx('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', color)}>
+    <div className="flex items-center justify-between">
+      <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+        {title}
+      </span>
+      <div className={clsx('p-2 rounded-xl', color)}>
         <Icon className="w-4 h-4" />
       </div>
+    </div>
+    <div className="mt-3">
+      <div className="text-2xl font-bold font-mono text-on-surface tracking-tight">{value}</div>
+      {sub && <p className="text-2xs text-on-surface-variant mt-0.5">{sub}</p>}
     </div>
   </Card>
 );
 
 // ─── System Status Item ───────────────────────────────────────────────────────
-const StatusRow: React.FC<{ label: string; status: 'ok' | 'warn' | 'unknown' }> = ({ label, status }) => {
+const StatusRow: React.FC<{
+  label: string;
+  status: 'ok' | 'warn' | 'disabled' | 'unknown';
+  note?: string;
+}> = ({ label, status, note }) => {
   const map = {
-    ok:      { icon: CheckCircle2, text: 'Operational', cls: 'text-secondary' },
-    warn:    { icon: AlertTriangle, text: 'Degraded', cls: 'text-amber-500' },
-    unknown: { icon: XCircle, text: 'Unknown', cls: 'text-on-surface-variant' },
+    ok:       { icon: CheckCircle2, text: 'Operational', cls: 'text-secondary' },
+    warn:     { icon: AlertTriangle, text: 'Check Config', cls: 'text-amber-500' },
+    disabled: { icon: MinusCircle, text: 'Disabled', cls: 'text-on-surface-variant' },
+    unknown:  { icon: HelpCircle, text: 'Unknown', cls: 'text-on-surface-variant' },
   };
-  const { icon: Icon, text, cls } = map[status];
+  const { icon: Icon, text, cls } = map[status] || map.unknown;
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-outline-variant/50 last:border-0">
-      <span className="text-xs font-medium text-on-surface">{label}</span>
+      <div>
+        <span className="text-xs font-medium text-on-surface">{label}</span>
+        {note && <p className="text-[10px] font-mono text-on-surface-variant">{note}</p>}
+      </div>
       <div className={clsx('flex items-center gap-1.5 text-xs font-medium', cls)}>
         <Icon className="w-3.5 h-3.5" />
         {text}
@@ -113,6 +123,24 @@ const OverviewTab: React.FC = () => {
     queryKey: ['adminDomains-overview'],
     queryFn: () => adminService.getDomains({ limit: 1 }),
   });
+  const { data: settingsData } = useQuery({
+    queryKey: ['adminSettings'],
+    queryFn: adminService.getSettings,
+    staleTime: 30000,
+  });
+
+  const redisStatus: 'ok' | 'warn' | 'disabled' | 'unknown' = useMemo(() => {
+    if (!settingsData) return 'unknown';
+    if (!settingsData.redis?.enabled) return 'disabled';
+    if (settingsData.redis?.status === 'ok' || settingsData.redis?.connected) return 'ok';
+    return 'warn';
+  }, [settingsData]);
+
+  const mailStatus: 'ok' | 'disabled' | 'unknown' = useMemo(() => {
+    if (!settingsData) return 'unknown';
+    if (!settingsData.mail?.enabled) return 'disabled';
+    return 'ok';
+  }, [settingsData]);
 
   return (
     <div className="space-y-6">
@@ -153,14 +181,32 @@ const OverviewTab: React.FC = () => {
         <Card>
           <CardHeader direction="row">
             <CardTitle>System Status</CardTitle>
-            <Badge variant="success">All Systems</Badge>
+            <Badge variant={redisStatus === 'ok' ? 'success' : 'indigo'}>
+              {redisStatus === 'ok' ? 'All Systems Active' : 'Status Monitor'}
+            </Badge>
           </CardHeader>
           <div>
-            <StatusRow label="Application Server" status="ok" />
-            <StatusRow label="PostgreSQL Database" status="ok" />
-            <StatusRow label="Redis Cache" status="unknown" />
-            <StatusRow label="Email Service" status="unknown" />
-            <StatusRow label="Background Jobs" status="ok" />
+            <StatusRow label="Application Server" status="ok" note="Express / Node.js Engine" />
+            <StatusRow label="PostgreSQL Database" status="ok" note="Neon Hosted PostgreSQL" />
+            <StatusRow
+              label="Redis Cache"
+              status={redisStatus}
+              note={
+                redisStatus === 'ok'
+                  ? 'Upstash Redis (Connected & Caching)'
+                  : redisStatus === 'disabled'
+                  ? 'Disabled in environment config'
+                  : redisStatus === 'warn'
+                  ? 'Check Redis URL & credentials'
+                  : 'Fetching telemetry...'
+              }
+            />
+            <StatusRow
+              label="Email Service"
+              status={mailStatus}
+              note={mailStatus === 'ok' ? 'SMTP Transport Active' : 'SMTP Disabled in config'}
+            />
+            <StatusRow label="Background Jobs" status="ok" note="Inline Worker Tasks" />
           </div>
           <p className="mt-3 text-[11px] text-on-surface-variant">
             Infrastructure health requires external monitoring integration. Redis and email status depend on environment configuration.

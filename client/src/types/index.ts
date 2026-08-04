@@ -140,6 +140,8 @@ export interface AdminSettings {
   };
   redis: {
     enabled: boolean;
+    connected?: boolean;
+    status?: 'ok' | 'warn' | 'disabled' | string;
     url_set: boolean;
     url_preview: string | null;
     host: string | null;
