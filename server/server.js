@@ -96,7 +96,8 @@ app.get([
   "/admin",
   "/login",
   "/signup",
-  "/reset-password"
+  "/reset-password",
+  "/404"
 ], (req, res, next) => {
   const spaIndex = path.join(__dirname, "../dist/index.html");
   const fs = require("fs");

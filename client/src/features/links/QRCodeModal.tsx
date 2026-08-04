@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { QRXService } from '../../services/qrx';
@@ -24,6 +24,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
   const [format, setFormat] = useState<'png' | 'svg'>('png');
   const [isDownloading, setIsDownloading] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
+  const [useFallbackImg, setUseFallbackImg] = useState(false);
 
   const qrOptions = {
     data: url,
@@ -33,7 +34,14 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
     format,
   };
 
-  const qrImageUrl = QRXService.getQRUrl(qrOptions);
+  const primaryUrl = QRXService.getQRUrl(qrOptions);
+  const fallbackUrl = QRXService.getFallbackQRUrl(qrOptions);
+  const currentImgUrl = useFallbackImg ? fallbackUrl : primaryUrl;
+
+  // Reset fallback on option changes
+  useEffect(() => {
+    setUseFallbackImg(false);
+  }, [url, size, color, bgColor, format]);
 
   const handleDownload = async () => {
     try {
@@ -49,7 +57,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
   const handleCopyUrl = async () => {
     try {
-      await navigator.clipboard.writeText(qrImageUrl);
+      await navigator.clipboard.writeText(currentImgUrl);
       setHasCopied(true);
       toast.success('QR image URL copied to clipboard');
       setTimeout(() => setHasCopied(false), 2000);
@@ -63,7 +71,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="QR Code Customizer"
-      description="Generate instant high-resolution QR codes powered by QRX."
+      description="Generate instant high-resolution QR codes."
       size="lg"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
@@ -72,13 +80,19 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
           {url ? (
             <div className="relative group p-4 bg-white rounded-xl shadow-xs border border-outline-variant">
               <img
-                src={qrImageUrl}
+                key={currentImgUrl}
+                src={currentImgUrl}
                 alt="QR Code preview"
                 className="w-48 h-48 object-contain transition-transform duration-200 group-hover:scale-105"
                 loading="eager"
+                onError={() => {
+                  if (!useFallbackImg) {
+                    setUseFallbackImg(true);
+                  }
+                }}
               />
               <div className="absolute top-2 right-2 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary rounded">
-                QRX
+                {useFallbackImg ? 'QR' : 'QRX'}
               </div>
             </div>
           ) : (
@@ -120,9 +134,10 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
                 className="w-full h-8 rounded-md border border-outline-variant bg-surface-container-lowest cursor-pointer px-1 py-1"
               />
             </div>
+
             <div>
               <label className="block text-xs font-medium text-on-surface-variant mb-1">
-                Background
+                Background Color
               </label>
               <input
                 type="color"
@@ -135,16 +150,16 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
           <div>
             <label className="block text-xs font-medium text-on-surface-variant mb-1">
-              File Format
+              Export Format
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setFormat('png')}
-                className={`py-1.5 text-xs font-medium rounded-md border transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   format === 'png'
-                    ? 'bg-primary/10 border-primary text-primary font-semibold'
-                    : 'bg-surface-container-low border-outline-variant text-on-surface-variant hover:text-on-surface'
+                    ? 'border-primary text-primary bg-primary/10'
+                    : 'border-outline-variant text-on-surface-variant hover:bg-surface-container'
                 }`}
               >
                 PNG Image
@@ -152,10 +167,10 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFormat('svg')}
-                className={`py-1.5 text-xs font-medium rounded-md border transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   format === 'svg'
-                    ? 'bg-primary/10 border-primary text-primary font-semibold'
-                    : 'bg-surface-container-low border-outline-variant text-on-surface-variant hover:text-on-surface'
+                    ? 'border-primary text-primary bg-primary/10'
+                    : 'border-outline-variant text-on-surface-variant hover:bg-surface-container'
                 }`}
               >
                 SVG Vector
@@ -163,23 +178,29 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
             </div>
           </div>
 
+          {/* Action Buttons */}
           <div className="pt-2 space-y-2">
             <Button
-              onClick={handleDownload}
               variant="primary"
-              size="md"
+              className="w-full"
+              onClick={handleDownload}
               isLoading={isDownloading}
-              leftIcon={<Download className="w-3.5 h-3.5" />}
-              className="w-full"
+              leftIcon={<Download className="w-4 h-4" />}
             >
-              Download {format.toUpperCase()}
+              Download {format.toUpperCase()} Code
             </Button>
+
             <Button
-              onClick={handleCopyUrl}
               variant="outline"
-              size="md"
-              leftIcon={hasCopied ? <Check className="w-3.5 h-3.5 text-secondary" /> : <Copy className="w-3.5 h-3.5" />}
-              className="w-full"
+              className="w-full text-xs"
+              onClick={handleCopyUrl}
+              leftIcon={
+                hasCopied ? (
+                  <Check className="w-3.5 h-3.5 text-secondary" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )
+              }
             >
               {hasCopied ? 'Copied Image URL' : 'Copy Direct QR Image URL'}
             </Button>

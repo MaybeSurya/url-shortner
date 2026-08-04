@@ -15,6 +15,7 @@ import { AdminPage } from './features/admin/AdminPage';
 import { LandingPage } from './features/landing/LandingPage';
 import { LoginPage } from './features/auth/LoginPage';
 import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
+import { NotFoundPage } from './features/not-found/NotFoundPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,8 +101,9 @@ const AnimatedRoutes: React.FC = () => {
           />
         </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* 404 & Fallback */}
+        <Route path="/404" element={<NotFoundPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AnimatePresence>
   );

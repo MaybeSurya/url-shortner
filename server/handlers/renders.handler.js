@@ -48,8 +48,11 @@ async function createAdmin(req, res) {
 }
 
 function notFound(req, res) {
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+  const targetUrl = req.query.url || `${protocol}://${req.get("host")}${req.originalUrl}`;
   res.status(404).render("404", {
-    title: "404 - Not found"
+    title: "404 - Link Not Found",
+    targetUrl,
   });
 }
 

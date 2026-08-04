@@ -1,10 +1,17 @@
 {{> header}}
-<div id="notfound" class="section-container">
-  <h2>
-    404 | Link could not be found.
+<div id="notfound" class="section-container" style="max-width: 540px; margin: 80px auto; text-align: center; font-family: system-ui, sans-serif;">
+  <div style="font-size: 48px; margin-bottom: 12px;">🔗❌</div>
+  <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">
+    404 | Link Not Found
   </h2>
-  <a class="back-to-home" href="/">
-    ← Back to homepage
+  <div style="background: rgba(0,0,0,0.05); padding: 10px 14px; border-radius: 8px; font-family: monospace; font-size: 13px; word-break: break-all; margin: 16px 0; border: 1px solid rgba(0,0,0,0.1);">
+    {{targetUrl}}
+  </div>
+  <p style="font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 24px;">
+    The link <strong style="word-break: break-all;">{{targetUrl}}</strong> you are trying to access no longer exists on this server. It might have existed earlier and has now been deleted.
+  </p>
+  <a class="back-to-home" href="/" style="display: inline-block; padding: 10px 20px; background: #0f172a; color: #fff; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600;">
+    ← Back to Homepage
   </a>
 </div>
 {{> footer}}

@@ -478,9 +478,14 @@ async function redirect(req, res, next) {
   });
 
   // 3. When no link, if has domain redirect to domain's homepage
-  // otherwise redirect to 404
+  // otherwise redirect to 404 with requested link URL in query string
   if (!link) {
-    return res.redirect(domain?.homepage || "/404");
+    if (domain?.homepage) {
+      return res.redirect(domain.homepage);
+    }
+    const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+    const fullUrl = `${protocol}://${req.get("host")}/${address}`;
+    return res.redirect(`/404?url=${encodeURIComponent(fullUrl)}`);
   }
 
   // 4. If link is banned, redirect to banned page.
