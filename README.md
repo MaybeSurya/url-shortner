@@ -116,5 +116,5 @@ Copy `.example.env` to `.env` to configure your instance.
 ## 📄 License & Attribution
 
 - Built on the open-source [Kutt.to](https://github.com/thedevs-network/kutt) codebase.
-- Customized and maintained by [Surya](https://maybesurya.com).
+- Customized and maintained by [Surya](https://maybesurya.dev).
 - Released under the MIT License.
