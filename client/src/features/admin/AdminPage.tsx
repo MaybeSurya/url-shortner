@@ -27,6 +27,8 @@ import {
   Eye,
   UserPlus,
   MoreHorizontal,
+  MinusCircle,
+  HelpCircle,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
