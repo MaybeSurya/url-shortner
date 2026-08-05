@@ -2,7 +2,7 @@ const { differenceInSeconds } = require("date-fns");
 const promisify = require("node:util").promisify;
 const bcrypt = require("bcryptjs");
 const { isbot } = require("isbot");
-const URL = require("node:url");
+const url = require("node:url");
 const dns = require("node:dns");
 
 const validators = require("./validators.handler");

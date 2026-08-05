@@ -3,7 +3,7 @@ const { body, param, query: queryValidator } = require("express-validator");
 const promisify = require("node:util").promisify;
 const bcrypt = require("bcryptjs");
 const dns = require("node:dns");
-const URL = require("node:url");
+const url = require("node:url");
 const ms = require("ms");
 
 const { ROLES } = require("../consts");
@@ -35,7 +35,7 @@ const createLink = [
       }
     })
     .withMessage("URL is not valid.")
-    .custom(value => utils.removeWww(URL.parse(value).host) !== env.DEFAULT_DOMAIN)
+    .custom(value => utils.removeWww(url.parse(value).host || "") !== env.DEFAULT_DOMAIN)
     .withMessage(`${env.DEFAULT_DOMAIN} URLs are not allowed.`),
   body("password")
     .optional({ nullable: true, checkFalsy: true })
@@ -114,7 +114,7 @@ const editLink = [
     .customSanitizer(utils.addProtocol)
     .custom(value => utils.urlRegex.test(value) || /^(?!https?|ftp)(\w+:|\/\/)/.test(value))
     .withMessage("URL is not valid.")
-    .custom(value => utils.removeWww(URL.parse(value).host) !== env.DEFAULT_DOMAIN)
+    .custom(value => utils.removeWww(url.parse(value).host || "") !== env.DEFAULT_DOMAIN)
     .withMessage(`${env.DEFAULT_DOMAIN} URLs are not allowed.`),
   body("password")
     .optional({ nullable: true, checkFalsy: true })
