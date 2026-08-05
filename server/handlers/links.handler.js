@@ -534,8 +534,8 @@ async function redirect(req, res, next) {
   }
 
   // 7. Create link visit
-  const isBot = isbot(req.headers["user-agent"]);
-  if (link.user_id && !isBot) {
+  const isBot = isbot(req.headers["user-agent"] || "");
+  if (link && !isBot) {
     queue.visit.add({
       userAgent: req.headers["user-agent"],
       ip: req.ip,
@@ -567,7 +567,8 @@ async function redirectProtected(req, res) {
   }
 
   // 4. Create visit
-  if (link.user_id) {
+  const isBotProtected = isbot(req.headers["user-agent"] || "");
+  if (link && !isBotProtected) {
     queue.visit.add({
       userAgent: req.headers["user-agent"],
       ip: req.ip,

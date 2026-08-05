@@ -8,15 +8,15 @@ const env = require("../env");
 async function add(params) {
   const data = {
     ...params,
-    country: params.country.toLowerCase(),
-    referrer: params.referrer.toLowerCase()
+    country: (params.country || "unknown").toLowerCase(),
+    referrer: (params.referrer || "direct").toLowerCase()
   };
 
   const nowUTC = new Date().toISOString();
   const truncatedNow = nowUTC.substring(0, 10) + " " + nowUTC.substring(11, 14) + "00:00";
 
   return knex.transaction(async (trx) => {
-    // Create a subquery first that truncates the
+    // Create a subquery first that truncates the created_at timestamp
     const subquery = trx("visits")
       .select("visits.*")
       .select({
@@ -31,10 +31,10 @@ async function add(params) {
       .where("created_at_hours", "=", truncatedNow)
       .forUpdate()
       .first();
-      
+
     if (visit) {
-      const countries = typeof visit.countries === "string" ? JSON.parse(visit.countries) : visit.countries;
-      const referrers = typeof visit.referrers === "string" ? JSON.parse(visit.referrers) : visit.referrers;
+      const countries = typeof visit.countries === "string" ? JSON.parse(visit.countries) : (visit.countries || {});
+      const referrers = typeof visit.referrers === "string" ? JSON.parse(visit.referrers) : (visit.referrers || {});
       await trx("visits")
         .where({ id: visit.id })
         .increment(`br_${data.browser}`, 1)
@@ -44,23 +44,23 @@ async function add(params) {
           updated_at: utils.dateToUTC(new Date()),
           countries: JSON.stringify({
             ...countries,
-            [data.country]: (countries[data.country] ?? 0) + 1
+            [data.country]: (Number(countries[data.country]) || 0) + 1
           }),
           referrers: JSON.stringify({
             ...referrers,
-             [data.referrer]: (referrers[data.referrer] ?? 0) + 1
+            [data.referrer]: (Number(referrers[data.referrer]) || 0) + 1
           })
         });
     } else {
       // This must also happen in the transaction to avoid concurrency
       await trx("visits").insert({
         [`br_${data.browser}`]: 1,
-        countries: { [data.country]: 1 },
-        referrers: { [data.referrer]: 1 },
+        countries: JSON.stringify({ [data.country]: 1 }),
+        referrers: JSON.stringify({ [data.referrer]: 1 }),
         [`os_${data.os}`]: 1,
         total: 1,
         link_id: data.link_id,
-        user_id: data.user_id,
+        user_id: data.user_id || null,
       });
     }
 

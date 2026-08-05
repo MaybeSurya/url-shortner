@@ -5,19 +5,27 @@ const URL = require("node:url");
 const { removeWww, getUseragentBrowser, getUseragentOS } = require("../utils");
 const query = require("../queries");
 
+const redis = require("../redis");
+
 module.exports = function({ data }) {
+  if (!data || !data.link) return Promise.resolve();
+
   const tasks = [];
   
-  tasks.push(query.link.incrementVisit({ id:  data.link.id }));
+  tasks.push(query.link.incrementVisit({ id: data.link.id }));
+
+  if (redis.remove && redis.remove.link) {
+    redis.remove.link(data.link);
+  }
   
   // the following line is for backward compatibility
   // used to send the whole header to get the user agent
-  const userAgent = data.userAgent || data.headers?.["user-agent"];
+  const userAgent = data.userAgent || data.headers?.["user-agent"] || "";
   const agent = useragent.parse(userAgent);
   const browser = getUseragentBrowser(agent);
   const os = getUseragentOS(agent);
-  const referrer = data.referrer && removeWww(URL.parse(data.referrer).hostname);
-  const country = data.country || geoip.lookup(data.ip)?.country || "Unknown";
+  const referrer = data.referrer ? removeWww(URL.parse(data.referrer).hostname || "") : "";
+  const country = data.country || geoip.lookup(data.ip || "")?.country || "Unknown";
 
   tasks.push(
     query.visit.add({

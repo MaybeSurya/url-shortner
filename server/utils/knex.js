@@ -24,8 +24,14 @@ function knexUtils(knex) {
       case "pg":
       case "pgnative":
       case "cockroachdb":
-        // PostgreSQL has the `date_trunc` function, which is ideal for this task
-        return knex.raw(`date_trunc(?, ${columnName} at time zone 'Z')`, [precision]);
+        // PostgreSQL format to_char to match string formatted timestamp comparison
+        const pgFormats = {
+          second: "YYYY-MM-DD HH24:MI:SS",
+          minute: "YYYY-MM-DD HH24:MI:00",
+          hour: "YYYY-MM-DD HH24:00:00",
+          day: "YYYY-MM-DD 00:00:00",
+        };
+        return knex.raw(`to_char(date_trunc(?, ${columnName} at time zone 'Z'), '${pgFormats[precision]}')`, [precision]);
       case "oracle":
       case "oracledb":
         // Oracle truncates dates using the `TRUNC` function
