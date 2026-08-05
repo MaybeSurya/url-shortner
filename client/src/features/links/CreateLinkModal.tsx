@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -7,7 +7,6 @@ import {
   Lock,
   Calendar,
   Globe,
-  Tag,
   Copy,
   Check,
   ExternalLink,
@@ -19,12 +18,9 @@ import {
   SlidersHorizontal,
   CheckCircle2,
   QrCode,
-  FileText,
-  HelpCircle,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Badge } from '../../components/ui/Badge';
 import { linkService, getErrorMessage, domainService } from '../../services/api';
 import { QRXService } from '../../services/qrx';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -61,11 +57,12 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ isOpen, onClos
   const [isQRAccordionOpen, setIsQRAccordionOpen] = useState(false);
 
   // QR Customizer state
+  const [isGeneratingQR, _setIsGeneratingQR] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [qrSize, setQrSize] = useState(240);
   const [qrColor, setQrColor] = useState('#4648d4');
   const [qrBgColor, setQrBgColor] = useState('#ffffff');
   const [qrImage, setQrImage] = useState<string | null>(null);
-  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -91,34 +88,6 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ isOpen, onClos
     }
   }, [target, utmSource, utmMedium, utmCampaign, utmTerm, utmContent]);
 
-  // Handle ESC & Cmd+Enter
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
-        handleSubmit();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, target, finalDestinationUrl]);
-
-  // Generate QR code when success link exists & accordion opens
-  useEffect(() => {
-    if (createdLink && isQRAccordionOpen) {
-      const url = QRXService.getQRUrl({
-        data: createdLink.link,
-        size: qrSize,
-        color: qrColor,
-        bgColor: qrBgColor,
-        format: 'png',
-      });
-      setQrImage(url);
-    }
-  }, [createdLink, isQRAccordionOpen, qrSize, qrColor, qrBgColor]);
-
   const createMutation = useMutation({
     mutationFn: linkService.createLink,
     onSuccess: (newLink) => {
@@ -132,6 +101,50 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ isOpen, onClos
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
+
+  const handleSubmit = useCallback((e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!target.trim()) {
+      toast.error('Destination URL is required');
+      return;
+    }
+    createMutation.mutate({
+      target: finalDestinationUrl,
+      customurl: customurl.trim() || undefined,
+      password: password || undefined,
+      domain: domain || undefined,
+      expire_in: expireIn || undefined,
+      description: description.trim() || undefined,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, finalDestinationUrl, customurl, password, domain, expireIn, description]);
+
+  // Handle ESC & Cmd+Enter — handleSubmit is defined below after createMutation
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
+
+  // Generate QR code when success link exists & accordion opens
+  useEffect(() => {
+    if (createdLink && isQRAccordionOpen) {
+      const id = setTimeout(() => {
+        const url = QRXService.getQRUrl({
+          data: createdLink.link,
+          size: qrSize,
+          color: qrColor,
+          bgColor: qrBgColor,
+          format: 'png',
+        });
+        setQrImage(url);
+      }, 0);
+      return () => clearTimeout(id);
+    }
+  }, [createdLink, isQRAccordionOpen, qrSize, qrColor, qrBgColor]);
 
   const resetForm = () => {
     setTarget('');
@@ -149,22 +162,6 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ isOpen, onClos
     setCreatedLink(null);
     setIsQRAccordionOpen(false);
     setQrImage(null);
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!target.trim()) {
-      toast.error('Destination URL is required');
-      return;
-    }
-    createMutation.mutate({
-      target: finalDestinationUrl,
-      customurl: customurl.trim() || undefined,
-      password: password || undefined,
-      domain: domain || undefined,
-      expire_in: expireIn || undefined,
-      description: description.trim() || undefined,
-    });
   };
 
   const copyShortUrl = async (url: string) => {

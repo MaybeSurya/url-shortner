@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { QRXService } from '../../services/qrx';
-import { Download, Copy, Check, QrCode } from 'lucide-react';
+import { Download, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 export interface QRCodeModalProps {
@@ -38,9 +38,9 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
   const fallbackUrl = QRXService.getFallbackQRUrl(qrOptions);
   const currentImgUrl = useFallbackImg ? fallbackUrl : primaryUrl;
 
-  // Reset fallback on option changes
   useEffect(() => {
-    setUseFallbackImg(false);
+    const id = setTimeout(() => setUseFallbackImg(false), 0);
+    return () => clearTimeout(id);
   }, [url, size, color, bgColor, format]);
 
   const handleDownload = async () => {

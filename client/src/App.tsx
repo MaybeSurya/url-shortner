@@ -22,8 +22,9 @@ const NotFoundPage = lazy(() => import('./features/not-found/NotFoundPage').then
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: (failureCount, error: any) => {
-        if (error?.response?.status === 401 || error?.response?.status === 403 || failureCount >= 2) {
+      retry: (failureCount, error: unknown) => {
+        const errObj = error as { response?: { status?: number } } | undefined;
+        if (errObj?.response?.status === 401 || errObj?.response?.status === 403 || failureCount >= 2) {
           return false;
         }
         return true;

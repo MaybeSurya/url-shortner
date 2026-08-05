@@ -51,7 +51,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
 
   const cycleTheme = () => {
     const themes = ['system', 'light', 'dark'] as const;
-    const idx = themes.indexOf(theme as any);
+    const idx = themes.indexOf(theme as unknown as (typeof themes)[number]);
     setTheme(themes[(idx + 1) % themes.length]);
   };
 

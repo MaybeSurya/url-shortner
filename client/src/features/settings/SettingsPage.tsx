@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Key, Lock, Mail, User as UserIcon, Copy, Check, RefreshCw, Trash2, Shield } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import { Key, Lock, Copy, Check, RefreshCw, Trash2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -18,8 +18,8 @@ export const SettingsPage: React.FC = () => {
   const [newpassword, setNewpassword] = useState('');
   
   // Email change state
-  const [newEmail, setNewEmail] = useState('');
-  const [emailPassword, setEmailPassword] = useState('');
+  const [_newEmail, _setNewEmail] = useState('');
+  const [_emailPassword, _setEmailPassword] = useState('');
 
   // API Key state
   const [apiKey, setApiKey] = useState(user?.apikey || '');
@@ -109,7 +109,7 @@ export const SettingsPage: React.FC = () => {
               <CardDescription>Role: {user?.role || 'User'}</CardDescription>
             </div>
           </div>
-          <Badge variant={user?.admin ? 'error' : 'indigo'}>
+          <Badge variant={user?.admin ? 'danger' : 'indigo'}>
             {user?.admin ? 'Administrator' : 'Standard User'}
           </Badge>
         </CardHeader>

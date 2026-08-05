@@ -20,12 +20,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const root = document.documentElement;
 
     const applyTheme = () => {
-      let activeIsDark = false;
-      if (theme === 'system') {
-        activeIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      } else {
-        activeIsDark = theme === 'dark';
-      }
+      const activeIsDark = theme === 'system'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        : theme === 'dark';
 
       if (activeIsDark) {
         root.classList.add('dark');

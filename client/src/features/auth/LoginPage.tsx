@@ -19,10 +19,6 @@ export const LoginPage: React.FC = () => {
   const { isAuthenticated, isLoading, refreshUser } = useAuth();
   const { siteName } = useConfig();
 
-  if (!isLoading && isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: async () => {
@@ -34,6 +30,10 @@ export const LoginPage: React.FC = () => {
       toast.error(getErrorMessage(err));
     },
   });
+
+  if (!isLoading && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

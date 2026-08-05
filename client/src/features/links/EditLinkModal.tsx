@@ -23,15 +23,18 @@ export const EditLinkModal: React.FC<EditLinkModalProps> = ({ isOpen, onClose, l
 
   useEffect(() => {
     if (link) {
-      setTarget(link.target || '');
-      setCustomurl(link.address || '');
-      setPassword('');
-      setExpireIn(link.expire_in ? new Date(link.expire_in).toISOString().slice(0, 16) : '');
+      const id = setTimeout(() => {
+        setTarget(link.target || '');
+        setCustomurl(link.address || '');
+        setPassword('');
+        setExpireIn(link.expire_in ? new Date(link.expire_in).toISOString().slice(0, 16) : '');
+      }, 0);
+      return () => clearTimeout(id);
     }
   }, [link]);
 
   const editMutation = useMutation({
-    mutationFn: (payload: { id: string; data: any }) => linkService.editLink(payload.id, payload.data),
+    mutationFn: (payload: { id: string; data: Record<string, unknown> }) => linkService.editLink(payload.id, payload.data),
     onSuccess: () => {
       toast.success('Link updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['links'] });

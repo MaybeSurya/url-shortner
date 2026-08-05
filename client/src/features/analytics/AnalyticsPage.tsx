@@ -2,23 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
-  BarChart3,
-  Globe,
-  Monitor,
-  Smartphone,
-  ArrowUpRight,
   TrendingUp,
   MousePointerClick,
-  Filter,
-  Calendar,
   Link as LinkIcon,
   QrCode,
   Users,
-  Clock,
-  Layers,
-  Sparkles,
   ExternalLink,
-  ChevronDown,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -27,15 +16,12 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
   CartesianGrid,
 } from 'recharts';
 import { Card, CardTitle, CardDescription } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -56,16 +42,19 @@ export const AnalyticsPage: React.FC = () => {
     queryFn: () => linkService.getLinks({ limit: 100 }),
   });
 
-  const links = linksData?.data || [];
+  const links = useMemo(() => linksData?.data || [], [linksData?.data]);
   const totalLinksCount = linksData?.total || 0;
 
   // Filter target link or aggregate across all links
-  const targetLink = selectedLinkId !== 'all' ? links.find((l) => l.id === selectedLinkId) : links[0];
+  const targetLink = useMemo(
+    () => (selectedLinkId !== 'all' ? links.find((l) => l.id === selectedLinkId) : links[0]),
+    [selectedLinkId, links]
+  );
 
   // Query stats for target link
-  const { data: statsData, isLoading: isStatsLoading } = useQuery({
+  const { data: _statsData, isLoading: isStatsLoading } = useQuery({
     queryKey: ['linkStats', targetLink?.id],
-    queryFn: () => linkService.getLinkStats(targetLink!.id),
+    queryFn: () => linkService.getLinkStats(targetLink?.id ?? ''),
     enabled: !!targetLink?.id,
   });
 

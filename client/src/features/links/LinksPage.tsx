@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Search, Plus, Copy, Check, QrCode, Edit3, Trash2, ExternalLink,
-  Download, Lock, Calendar, Filter, LinkIcon, ChevronLeft, ChevronRight, X
+  Download, Lock, Calendar, LinkIcon, ChevronLeft, ChevronRight, X
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
