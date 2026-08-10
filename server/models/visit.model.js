@@ -93,8 +93,54 @@ async function createVisitTable(knex) {
       table.dateTime("updated_at").defaultTo(knex.fn.now());
     });
   }
+
+  await createVisitLogsTable(knex);
+}
+
+async function createVisitLogsTable(knex) {
+  const hasLogsTable = await knex.schema.hasTable("visit_logs");
+  if (!hasLogsTable) {
+    await knex.schema.createTable("visit_logs", table => {
+      table.increments("id").primary();
+      table
+        .integer("link_id")
+        .unsigned()
+        .notNullable()
+        .references("id")
+        .inTable("links")
+        .onDelete("CASCADE");
+      table
+        .integer("user_id")
+        .unsigned()
+        .nullable()
+        .references("id")
+        .inTable("users")
+        .onDelete("CASCADE");
+      table.string("ip", 45);
+      table.string("country", 10);
+      table.string("country_name", 100);
+      table.string("region", 100);
+      table.string("city", 100);
+      table.float("latitude");
+      table.float("longitude");
+      table.string("timezone", 100);
+      table.string("continent", 50);
+      table.string("browser", 50);
+      table.string("browser_version", 50);
+      table.string("os", 50);
+      table.string("device_type", 50);
+      table.string("referrer", 255);
+      table.string("user_agent", 500);
+      table.string("language", 50);
+      table
+        .dateTime("created_at")
+        .notNullable()
+        .defaultTo(knex.fn.now());
+    });
+  }
 }
 
 module.exports = {
-  createVisitTable
-}
+  createVisitTable,
+  createVisitLogsTable
+};

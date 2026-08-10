@@ -70,56 +70,85 @@ export const AnalyticsPage: React.FC = () => {
     // Top performing links
     const sortedLinks = [...links].sort((a, b) => Number(b.visit_count) - Number(a.visit_count)).slice(0, 5);
 
-    // Browser distribution
-    const browserData = [
-      { name: 'Chrome', value: Math.floor(totalClicks * 0.58), color: '#4648d4' },
-      { name: 'Safari', value: Math.floor(totalClicks * 0.22), color: '#6063ee' },
-      { name: 'Firefox', value: Math.floor(totalClicks * 0.11), color: '#006c49' },
-      { name: 'Edge', value: Math.floor(totalClicks * 0.06), color: '#825100' },
-      { name: 'Other', value: Math.floor(totalClicks * 0.03), color: '#767586' },
-    ];
+    // Extract real stats from statsData if available
+    const periodStats = selectedPeriod === 'today'
+      ? (_statsData as any)?.lastDay
+      : selectedPeriod === '7d'
+      ? (_statsData as any)?.lastWeek
+      : (_statsData as any)?.lastMonth;
 
-    // OS distribution
-    const osData = [
-      { name: 'macOS', clicks: Math.floor(totalClicks * 0.36) },
-      { name: 'Windows', clicks: Math.floor(totalClicks * 0.32) },
-      { name: 'iOS', clicks: Math.floor(totalClicks * 0.18) },
-      { name: 'Android', clicks: Math.floor(totalClicks * 0.10) },
-      { name: 'Linux', clicks: Math.floor(totalClicks * 0.04) },
-    ];
+    const realBrowsers: any[] | undefined = periodStats?.stats?.browser;
+    const realOs: any[] | undefined = periodStats?.stats?.os;
+    const realCountries: any[] | undefined = periodStats?.stats?.country;
+    const realReferrers: any[] | undefined = periodStats?.stats?.referrer;
+    const realViews: number[] | undefined = periodStats?.views;
 
-    // Referrers distribution
-    const referrersData = [
-      { name: 'Direct / None', count: Math.floor(totalClicks * 0.42), pct: 42 },
-      { name: 'google.com', count: Math.floor(totalClicks * 0.26), pct: 26 },
-      { name: 't.co / Twitter', count: Math.floor(totalClicks * 0.14), pct: 14 },
-      { name: 'github.com', count: Math.floor(totalClicks * 0.11), pct: 11 },
-      { name: 'linkedin.com', count: Math.floor(totalClicks * 0.07), pct: 7 },
-    ];
+    const colors = ['#4648d4', '#6063ee', '#006c49', '#825100', '#767586'];
 
-    // Countries
-    const countriesData = [
-      { name: 'United States', flag: '🇺🇸', clicks: Math.floor(totalClicks * 0.45) },
-      { name: 'Germany', flag: '🇩🇪', clicks: Math.floor(totalClicks * 0.15) },
-      { name: 'India', flag: '🇮🇳', clicks: Math.floor(totalClicks * 0.14) },
-      { name: 'United Kingdom', flag: '🇬🇧', clicks: Math.floor(totalClicks * 0.12) },
-      { name: 'Canada', flag: '🇨🇦', clicks: Math.floor(totalClicks * 0.08) },
-      { name: 'Others', flag: '🌐', clicks: Math.floor(totalClicks * 0.06) },
-    ];
+    const browserData = (realBrowsers && realBrowsers.length > 0)
+      ? realBrowsers.map((b, i) => ({
+          name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
+          value: b.value,
+          color: colors[i % colors.length]
+        }))
+      : [
+          { name: 'Chrome', value: Math.floor(totalClicks * 0.58), color: '#4648d4' },
+          { name: 'Safari', value: Math.floor(totalClicks * 0.22), color: '#6063ee' },
+          { name: 'Firefox', value: Math.floor(totalClicks * 0.11), color: '#006c49' },
+          { name: 'Edge', value: Math.floor(totalClicks * 0.06), color: '#825100' },
+          { name: 'Other', value: Math.floor(totalClicks * 0.03), color: '#767586' },
+        ];
 
-    // Timeline chart data generator based on selectedPeriod
-    let timelinePoints = 7;
-    if (selectedPeriod === 'today') timelinePoints = 24;
-    if (selectedPeriod === 'yesterday') timelinePoints = 24;
-    if (selectedPeriod === '30d') timelinePoints = 30;
-    if (selectedPeriod === '90d') timelinePoints = 12;
+    const osData = (realOs && realOs.length > 0)
+      ? realOs.map((o) => ({ name: o.name.charAt(0).toUpperCase() + o.name.slice(1), clicks: o.value }))
+      : [
+          { name: 'macOS', clicks: Math.floor(totalClicks * 0.36) },
+          { name: 'Windows', clicks: Math.floor(totalClicks * 0.32) },
+          { name: 'iOS', clicks: Math.floor(totalClicks * 0.18) },
+          { name: 'Android', clicks: Math.floor(totalClicks * 0.10) },
+          { name: 'Linux', clicks: Math.floor(totalClicks * 0.04) },
+        ];
 
-    const timelineData = Array.from({ length: timelinePoints }, (_, i) => {
-      const multiplier = Math.sin((i / timelinePoints) * Math.PI) + 0.5;
-      const clicks = Math.floor((totalClicks / timelinePoints) * multiplier);
-      const label = selectedPeriod.includes('d') ? `Day ${i + 1}` : `${i}:00`;
-      return { label, clicks, unique: Math.floor(clicks * 0.75) };
-    });
+    const referrersData = (realReferrers && realReferrers.length > 0)
+      ? realReferrers.map((r) => {
+          const name = r.name.replace(/\[dot\]/g, '.');
+          const totalRef = realReferrers.reduce((acc: number, curr: any) => acc + curr.value, 0) || 1;
+          return { name: name.toLowerCase() === 'direct' ? 'Direct / None' : name, count: r.value, pct: Math.round((r.value / totalRef) * 100) };
+        })
+      : [
+          { name: 'Direct / None', count: Math.floor(totalClicks * 0.42), pct: 42 },
+          { name: 'google.com', count: Math.floor(totalClicks * 0.26), pct: 26 },
+          { name: 't.co / Twitter', count: Math.floor(totalClicks * 0.14), pct: 14 },
+          { name: 'github.com', count: Math.floor(totalClicks * 0.11), pct: 11 },
+          { name: 'linkedin.com', count: Math.floor(totalClicks * 0.07), pct: 7 },
+        ];
+
+    const countriesData = (realCountries && realCountries.length > 0)
+      ? realCountries.map((c) => ({
+          name: c.name.toUpperCase(),
+          flag: '🌐',
+          clicks: c.value
+        }))
+      : [
+          { name: 'United States', flag: '🇺🇸', clicks: Math.floor(totalClicks * 0.45) },
+          { name: 'Germany', flag: '🇩🇪', clicks: Math.floor(totalClicks * 0.15) },
+          { name: 'India', flag: '🇮🇳', clicks: Math.floor(totalClicks * 0.14) },
+          { name: 'United Kingdom', flag: '🇬🇧', clicks: Math.floor(totalClicks * 0.12) },
+          { name: 'Canada', flag: '🇨🇦', clicks: Math.floor(totalClicks * 0.08) },
+          { name: 'Others', flag: '🌐', clicks: Math.floor(totalClicks * 0.06) },
+        ];
+
+    const timelineData = (realViews && realViews.length > 0)
+      ? realViews.map((clicks, i) => ({
+          label: selectedPeriod.includes('d') ? `Day ${i + 1}` : `${i}:00`,
+          clicks,
+          unique: Math.floor(clicks * 0.75)
+        }))
+      : Array.from({ length: 7 }, (_, i) => {
+          const multiplier = Math.sin((i / 7) * Math.PI) + 0.5;
+          const clicks = Math.floor((totalClicks / 7) * multiplier);
+          return { label: `Day ${i + 1}`, clicks, unique: Math.floor(clicks * 0.75) };
+        });
 
     return {
       totalClicks,
@@ -135,7 +164,7 @@ export const AnalyticsPage: React.FC = () => {
       countriesData,
       timelineData,
     };
-  }, [links, totalLinksCount, selectedPeriod]);
+  }, [links, totalLinksCount, selectedPeriod, _statsData]);
 
   const isLoading = isLinksLoading || isStatsLoading;
 
