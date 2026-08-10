@@ -8,6 +8,11 @@ import {
   QrCode,
   Users,
   ExternalLink,
+  Activity,
+  Globe,
+  Smartphone,
+  Monitor,
+  Clock,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -509,6 +514,76 @@ export const AnalyticsPage: React.FC = () => {
                     <td className="py-3 px-4 text-right font-mono font-bold text-on-surface">{link.visit_count}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* ── Live Visitor Activity Feed ── */}
+      <Card padding="none">
+        <div className="p-4 border-b border-outline-variant flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-primary animate-pulse" />
+              Live Visitor Activity Stream
+            </CardTitle>
+            <CardDescription className="mt-0.5">Real-time breakdown of recent clicks and visitor footprints</CardDescription>
+          </div>
+          <Badge variant="indigo" className="gap-1.5 font-mono text-[10px] py-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
+            Live Logs ({((_statsData as any)?.recentLogs || []).length})
+          </Badge>
+        </div>
+
+        {((_statsData as any)?.recentLogs || []).length === 0 ? (
+          <div className="p-8 text-center text-xs text-on-surface-variant">
+            <Globe className="w-8 h-8 mx-auto mb-2 text-on-surface-variant/40" />
+            No recent visitor logs recorded yet. Visit your short links to view real-time traffic streams.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left data-table text-xs">
+              <thead>
+                <tr className="bg-surface-container-low border-b border-outline-variant text-2xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                  <th className="py-2.5 px-4">Visitor Location</th>
+                  <th className="py-2.5 px-4">Device & OS</th>
+                  <th className="py-2.5 px-4">Browser</th>
+                  <th className="py-2.5 px-4">Referrer</th>
+                  <th className="py-2.5 px-4 text-right">Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/50">
+                {((_statsData as any)?.recentLogs || []).slice(0, 15).map((log: any, idx: number) => {
+                  const countryCode = (log.country || 'unknown').toUpperCase();
+                  const device = (log.device_type || 'desktop').toLowerCase();
+                  return (
+                    <tr key={log.id || idx} className="hover:bg-surface-container/40 transition-colors">
+                      <td className="py-3 px-4 font-medium text-on-surface">
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span>{log.city && log.city !== 'Unknown' ? `${log.city}, ${countryCode}` : (log.country_name || countryCode)}</span>
+                          {log.ip && <span className="font-mono text-2xs text-on-surface-variant/70">({log.ip})</span>}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5 capitalize text-on-surface-variant">
+                          {device === 'mobile' ? <Smartphone className="w-3.5 h-3.5 text-indigo-400" /> : <Monitor className="w-3.5 h-3.5 text-sky-400" />}
+                          <span>{log.os || 'Other'} • {device}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 font-mono capitalize text-on-surface-variant">
+                        {log.browser || 'Other'} {log.browser_version ? `v${log.browser_version}` : ''}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-on-surface-variant truncate max-w-[150px]">
+                        {log.referrer ? log.referrer.replace(/\[dot\]/g, '.') : 'Direct'}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-on-surface-variant text-2xs">
+                        {log.created_at ? new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Recent'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

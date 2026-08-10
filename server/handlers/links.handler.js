@@ -15,6 +15,7 @@ const env = require("../env");
 
 const CustomError = utils.CustomError;
 const dnsLookup = promisify(dns.lookup);
+const { parseVisitorInfo } = require("../utils/visitor.utils");
 
 async function get(req, res) {
   const { limit, skip } = req.context;
@@ -533,17 +534,11 @@ async function redirect(req, res, next) {
     return;
   }
 
-  // 7. Create link visit
-  const isBot = isbot(req.headers["user-agent"] || "");
-  if (link && !isBot) {
-    queue.visit.add({
-      userAgent: req.headers["user-agent"],
-      ip: req.ip,
-      country: req.get("cf-ipcountry"),
-      referrer: req.get("Referrer"),
-      link
-    });
-  }
+  // 7. Create link visit directly
+  const visitorInfo = parseVisitorInfo(req);
+  query.visit.recordVisitDirect(link, visitorInfo).catch(err => {
+    console.error("[VisitTracking] Record visit direct error:", err.message || err);
+  });
 
   // 8. Redirect to target
   return res.redirect(link.target);
@@ -566,17 +561,11 @@ async function redirectProtected(req, res) {
     throw new CustomError("Password is not correct.", 401);
   }
 
-  // 4. Create visit
-  const isBotProtected = isbot(req.headers["user-agent"] || "");
-  if (link && !isBotProtected) {
-    queue.visit.add({
-      userAgent: req.headers["user-agent"],
-      ip: req.ip,
-      country: req.get("cf-ipcountry"),
-      referrer: req.get("Referrer"),
-      link
-    });
-  }
+  // 4. Create visit directly
+  const visitorInfo = parseVisitorInfo(req);
+  query.visit.recordVisitDirect(link, visitorInfo).catch(err => {
+    console.error("[VisitTracking] Record visit direct error:", err.message || err);
+  });
 
   // 5. Send target
   if (req.isHTML) {

@@ -1,252 +1,273 @@
-const { isAfter, subDays, subHours, set, format } = require("date-fns");
-
-const utils = require("../utils");
-const redis = require("../redis");
+const { isAfter, subDays, subHours, subMonths, format } = require("date-fns");
 const knex = require("../knex");
+const redis = require("../redis");
 const env = require("../env");
+const utils = require("../utils");
 
-async function add(params) {
-  const data = {
-    ...params,
-    browser: params.browser || "other",
-    os: params.os || "other",
-    country: (params.country || "unknown").toLowerCase(),
-    referrer: (params.referrer || "direct").toLowerCase()
-  };
+async function recordVisitDirect(link, visitorInfo = {}) {
+  if (!link || !link.id) return;
 
-  const nowUTC = new Date().toISOString();
-  const truncatedNow = nowUTC.substring(0, 10) + " " + nowUTC.substring(11, 14) + "00:00";
+  const linkId = link.id;
+  const userId = link.user_id || null;
 
-  return knex.transaction(async (trx) => {
-    // 1. Aggregated hourly visits update
-    const subquery = trx("visits")
-      .select("visits.*")
-      .select({
-        created_at_hours: utils.knexUtils(trx).truncatedTimestamp("created_at", "hour")
-      })
-      .where({ link_id: data.link_id })
-      .as("subquery");
+  // 1. Direct Atomic Increment on `links` table
+  try {
+    await knex("links").where({ id: linkId }).increment("visit_count", 1);
+  } catch (err) {
+    console.error("[VisitTracking] Failed to increment visit_count on links table:", err.message);
+  }
 
-    const visit = await trx
-      .select("*")
-      .from(subquery)
-      .where("created_at_hours", "=", truncatedNow)
-      .forUpdate()
-      .first();
+  // 2. Clear Redis cache for link and stats
+  if (redis.client && redis.client.status === "ready") {
+    try {
+      const linkKey = `l:${link.address}:${link.domain_id || ""}`;
+      const statsKey = redis.key.stats(linkId);
+      await redis.client.del(linkKey);
+      await redis.client.del(statsKey);
+      await redis.client.del(`s:${linkId}`);
+      if (userId) {
+        await redis.client.del(`s:all:${userId}`);
+      }
+    } catch {
+      // Ignore Redis errors
+    }
+  }
 
-    const knownBrowsers = ["chrome", "edge", "firefox", "ie", "opera", "safari"];
-    const knownOS = ["android", "ios", "linux", "macos", "windows"];
-    const brKey = knownBrowsers.includes(data.browser) ? `br_${data.browser}` : "br_other";
-    const osKey = knownOS.includes(data.os) ? `os_${data.os}` : "os_other";
+  const browser = visitorInfo.browser || "other";
+  const os = visitorInfo.os || "other";
+  const country = (visitorInfo.country || "unknown").toLowerCase();
+  const referrer = (visitorInfo.referrer || "direct").toLowerCase();
+  const device_type = visitorInfo.device_type || "desktop";
 
-    if (visit) {
-      const countries = typeof visit.countries === "string" ? JSON.parse(visit.countries) : (visit.countries || {});
-      const referrers = typeof visit.referrers === "string" ? JSON.parse(visit.referrers) : (visit.referrers || {});
-      await trx("visits")
-        .where({ id: visit.id })
-        .increment(brKey, 1)
-        .increment(osKey, 1)
-        .increment("total", 1)
-        .update({
-          updated_at: utils.dateToUTC(new Date()),
-          countries: JSON.stringify({
-            ...countries,
-            [data.country]: (Number(countries[data.country]) || 0) + 1
-          }),
-          referrers: JSON.stringify({
-            ...referrers,
-            [data.referrer]: (Number(referrers[data.referrer]) || 0) + 1
-          })
-        });
-    } else {
-      await trx("visits").insert({
-        [brKey]: 1,
-        countries: JSON.stringify({ [data.country]: 1 }),
-        referrers: JSON.stringify({ [data.referrer]: 1 }),
-        [osKey]: 1,
-        total: 1,
-        link_id: data.link_id,
-        user_id: data.user_id || null,
+  // 3. Insert granular record into `visit_logs`
+  try {
+    const hasLogsTable = await knex.schema.hasTable("visit_logs");
+    if (hasLogsTable) {
+      await knex("visit_logs").insert({
+        link_id: linkId,
+        user_id: userId,
+        ip: visitorInfo.ip || null,
+        country: country,
+        country_name: visitorInfo.country_name || null,
+        city: visitorInfo.city || null,
+        region: visitorInfo.region || null,
+        timezone: visitorInfo.timezone || null,
+        latitude: visitorInfo.latitude || null,
+        longitude: visitorInfo.longitude || null,
+        continent: visitorInfo.continent || null,
+        browser: browser,
+        browser_version: visitorInfo.browser_version || null,
+        os: os,
+        device_type: device_type,
+        referrer: referrer,
+        user_agent: visitorInfo.userAgent ? visitorInfo.userAgent.substring(0, 500) : null
       });
     }
+  } catch (err) {
+    console.error("[VisitTracking] Error inserting into visit_logs:", err.message);
+  }
 
-    // 2. Granular log entry insertion into visit_logs table
-    try {
-      const hasLogsTable = await trx.schema.hasTable("visit_logs");
-      if (hasLogsTable) {
-        await trx("visit_logs").insert({
-          link_id: data.link_id,
-          user_id: data.user_id || null,
-          ip: data.ip || null,
-          country: data.country || "unknown",
-          city: data.city || null,
-          region: data.region || null,
-          timezone: data.timezone || null,
-          latitude: data.latitude || null,
-          longitude: data.longitude || null,
-          continent: data.continent || null,
-          browser: data.browser || "other",
-          browser_version: data.browser_version || null,
-          os: data.os || "other",
-          device_type: data.device_type || "desktop",
-          referrer: data.referrer || "direct",
-          user_agent: data.user_agent ? data.user_agent.substring(0, 500) : null
+  // 4. Update or Insert Hourly Aggregated Record in `visits`
+  try {
+    const hasVisitsTable = await knex.schema.hasTable("visits");
+    if (hasVisitsTable) {
+      const now = new Date();
+      const currentHourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0);
+
+      const existingVisit = await knex("visits")
+        .where({ link_id: linkId })
+        .andWhere("created_at", ">=", currentHourStart)
+        .orderBy("id", "desc")
+        .first();
+
+      const knownBrowsers = ["chrome", "edge", "firefox", "ie", "opera", "safari"];
+      const knownOS = ["android", "ios", "linux", "macos", "windows"];
+      const brKey = knownBrowsers.includes(browser) ? `br_${browser}` : "br_other";
+      const osKey = knownOS.includes(os) ? `os_${os}` : "os_other";
+
+      if (existingVisit) {
+        let countriesObj = {};
+        let referrersObj = {};
+        try {
+          countriesObj = typeof existingVisit.countries === "string" ? JSON.parse(existingVisit.countries) : (existingVisit.countries || {});
+        } catch { countriesObj = {}; }
+        try {
+          referrersObj = typeof existingVisit.referrers === "string" ? JSON.parse(existingVisit.referrers) : (existingVisit.referrers || {});
+        } catch { referrersObj = {}; }
+
+        countriesObj[country] = (Number(countriesObj[country]) || 0) + 1;
+        referrersObj[referrer] = (Number(referrersObj[referrer]) || 0) + 1;
+
+        await knex("visits")
+          .where({ id: existingVisit.id })
+          .increment(brKey, 1)
+          .increment(osKey, 1)
+          .increment("total", 1)
+          .update({
+            updated_at: knex.fn.now(),
+            countries: JSON.stringify(countriesObj),
+            referrers: JSON.stringify(referrersObj)
+          });
+      } else {
+        await knex("visits").insert({
+          link_id: linkId,
+          user_id: userId,
+          [brKey]: 1,
+          [osKey]: 1,
+          total: 1,
+          countries: JSON.stringify({ [country]: 1 }),
+          referrers: JSON.stringify({ [referrer]: 1 }),
+          created_at: knex.fn.now(),
+          updated_at: knex.fn.now()
         });
       }
-    } catch (err) {
-      console.error("[VisitQuery] Warning inserting visit_log:", err.message);
     }
+  } catch (err) {
+    console.error("[VisitTracking] Error updating visits table:", err.message);
+  }
+}
 
-    return visit;
-  });
+async function add(params) {
+  // Fallback wrapper for queue compatibility
+  const visitorInfo = {
+    browser: params.browser,
+    browser_version: params.browser_version,
+    os: params.os,
+    device_type: params.device_type,
+    country: params.country,
+    city: params.city,
+    region: params.region,
+    timezone: params.timezone,
+    latitude: params.latitude,
+    longitude: params.longitude,
+    continent: params.continent,
+    ip: params.ip,
+    userAgent: params.user_agent,
+    referrer: params.referrer
+  };
+  return recordVisitDirect({ id: params.link_id, user_id: params.user_id }, visitorInfo);
 }
 
 async function getLogs(match, limit = 50) {
-  const hasLogsTable = await knex.schema.hasTable("visit_logs");
-  if (!hasLogsTable) return [];
-  return knex("visit_logs")
-    .where(match)
-    .orderBy("created_at", "desc")
-    .limit(limit);
+  try {
+    const hasLogsTable = await knex.schema.hasTable("visit_logs");
+    if (!hasLogsTable) return [];
+    return knex("visit_logs")
+      .where(match)
+      .orderBy("created_at", "desc")
+      .limit(limit);
+  } catch {
+    return [];
+  }
 }
 
-async function find(match, total) {
+async function find(match, totalOverride) {
+  // Check Redis cache for stats if available
   if (match.link_id && env.REDIS_ENABLED && redis.client && redis.client.status === "ready") {
     const key = redis.key.stats(match.link_id);
     try {
       const cached = await redis.client.get(key);
       if (cached) return JSON.parse(cached);
     } catch {
-      // fallback if redis error
+      // fallback
     }
   }
 
-  const stats = {
-    lastDay: {
-      stats: utils.getInitStats(),
-      views: new Array(24).fill(0),
-      total: 0
-    },
-    lastWeek: {
-      stats: utils.getInitStats(),
-      views: new Array(7).fill(0),
-      total: 0
-    },
-    lastMonth: {
-      stats: utils.getInitStats(),
-      views: new Array(30).fill(0),
-      total: 0
-    },
-    lastYear: {
-      stats: utils.getInitStats(),
-      views: new Array(12).fill(0),
-      total: 0
+  const now = new Date();
+
+  // Helper to aggregate distributions & timeline from visit_logs or visits
+  const hasLogsTable = await knex.schema.hasTable("visit_logs");
+
+  let logs = [];
+  if (hasLogsTable) {
+    try {
+      logs = await knex("visit_logs")
+        .where(match)
+        .orderBy("created_at", "desc")
+        .limit(1000);
+    } catch {
+      logs = [];
     }
+  }
+
+  // Calculate totals and distributions from logs
+  const buildStatsForPeriod = (daysCount, isHours = false) => {
+    const periodFrom = isHours ? subHours(now, daysCount) : subDays(now, daysCount);
+    const filteredLogs = logs.filter(l => new Date(l.created_at) >= periodFrom);
+
+    const total = filteredLogs.length;
+
+    const browserMap = {};
+    const osMap = {};
+    const countryMap = {};
+    const referrerMap = {};
+    const deviceMap = {};
+
+    const pointsCount = isHours ? daysCount : Math.min(daysCount, 30);
+    const views = new Array(pointsCount).fill(0);
+
+    filteredLogs.forEach(l => {
+      const b = (l.browser || "other").toLowerCase();
+      const o = (l.os || "other").toLowerCase();
+      const c = (l.country || "unknown").toLowerCase();
+      const r = (l.referrer || "direct").toLowerCase();
+      const d = (l.device_type || "desktop").toLowerCase();
+
+      browserMap[b] = (browserMap[b] || 0) + 1;
+      osMap[o] = (osMap[o] || 0) + 1;
+      countryMap[c] = (countryMap[c] || 0) + 1;
+      referrerMap[r] = (referrerMap[r] || 0) + 1;
+      deviceMap[d] = (deviceMap[d] || 0) + 1;
+
+      // Histogram indexing
+      const logDate = new Date(l.created_at);
+      let diffIndex = 0;
+      if (isHours) {
+        diffIndex = Math.floor((now.getTime() - logDate.getTime()) / (1000 * 60 * 60));
+      } else {
+        diffIndex = Math.floor((now.getTime() - logDate.getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      const idx = pointsCount - 1 - diffIndex;
+      if (idx >= 0 && idx < pointsCount) {
+        views[idx] += 1;
+      }
+    });
+
+    const toArr = (map) => Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+
+    return {
+      stats: {
+        browser: toArr(browserMap),
+        os: toArr(osMap),
+        country: toArr(countryMap),
+        referrer: toArr(referrerMap),
+        device: toArr(deviceMap)
+      },
+      views,
+      total
+    };
   };
 
-  const visitsStream = knex("visits").where(match).stream();
-  const now = new Date();
-  const periods = utils.getStatsPeriods(now);
-
-  for await (const visit of visitsStream) {
-    periods.forEach(([type, fromDate]) => {
-      const isIncluded = isAfter(utils.parseDatetime(visit.created_at), fromDate);
-      if (!isIncluded) return;
-      const diffFunction = utils.getDifferenceFunction(type);
-      const diff = diffFunction(now, utils.parseDatetime(visit.created_at));
-      const index = stats[type].views.length - diff - 1;
-      if (index < 0 || index >= stats[type].views.length) return;
-
-      const period = stats[type].stats;
-      const countries = typeof visit.countries === "string" ? JSON.parse(visit.countries) : (visit.countries || {});
-      const referrers = typeof visit.referrers === "string" ? JSON.parse(visit.referrers) : (visit.referrers || {});
-
-      stats[type].stats = {
-        browser: {
-          chrome: period.browser.chrome + (visit.br_chrome || 0),
-          edge: period.browser.edge + (visit.br_edge || 0),
-          firefox: period.browser.firefox + (visit.br_firefox || 0),
-          ie: period.browser.ie + (visit.br_ie || 0),
-          opera: period.browser.opera + (visit.br_opera || 0),
-          other: period.browser.other + (visit.br_other || 0),
-          safari: period.browser.safari + (visit.br_safari || 0)
-        },
-        os: {
-          android: period.os.android + (visit.os_android || 0),
-          ios: period.os.ios + (visit.os_ios || 0),
-          linux: period.os.linux + (visit.os_linux || 0),
-          macos: period.os.macos + (visit.os_macos || 0),
-          other: period.os.other + (visit.os_other || 0),
-          windows: period.os.windows + (visit.os_windows || 0)
-        },
-        country: {
-          ...period.country,
-          ...Object.entries(countries).reduce(
-            (obj, [country, count]) => ({
-              ...obj,
-              [country]: (period.country[country] || 0) + count
-            }),
-            {}
-          )
-        },
-        referrer: {
-          ...period.referrer,
-          ...Object.entries(referrers).reduce(
-            (obj, [referrer, count]) => ({
-              ...obj,
-              [referrer]: (period.referrer[referrer] || 0) + count
-            }),
-            {}
-          )
-        }
-      };
-      stats[type].views[index] += visit.total;
-      stats[type].total += visit.total;
-    });
-  }
-
-  // Fetch recent granular visit logs
-  let recentLogs = [];
-  try {
-    recentLogs = await getLogs(match, 25);
-  } catch {
-    recentLogs = [];
-  }
-
   const response = {
-    lastYear: {
-      stats: utils.statsObjectToArray(stats.lastYear.stats),
-      views: stats.lastYear.views,
-      total: stats.lastYear.total
-    },
-    lastDay: {
-      stats: utils.statsObjectToArray(stats.lastDay.stats),
-      views: stats.lastDay.views,
-      total: stats.lastDay.total
-    },
-    lastMonth: {
-      stats: utils.statsObjectToArray(stats.lastMonth.stats),
-      views: stats.lastMonth.views,
-      total: stats.lastMonth.total
-    },
-    lastWeek: {
-      stats: utils.statsObjectToArray(stats.lastWeek.stats),
-      views: stats.lastWeek.views,
-      total: stats.lastWeek.total
-    },
-    recentLogs,
+    lastDay: buildStatsForPeriod(24, true),
+    lastWeek: buildStatsForPeriod(7, false),
+    lastMonth: buildStatsForPeriod(30, false),
+    lastYear: buildStatsForPeriod(365, false),
+    recentLogs: logs.slice(0, 25),
     updatedAt: new Date()
   };
 
   if (match.link_id && env.REDIS_ENABLED && redis.client && redis.client.status === "ready") {
     const key = redis.key.stats(match.link_id);
-    redis.client.set(key, JSON.stringify(response), "EX", 15).catch(() => {});
+    redis.client.set(key, JSON.stringify(response), "EX", 5).catch(() => {});
   }
 
   return response;
 }
 
 module.exports = {
+  recordVisitDirect,
   add,
   getLogs,
   find
