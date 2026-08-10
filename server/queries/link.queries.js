@@ -196,7 +196,7 @@ async function find(match) {
   if (link && env.REDIS_ENABLED && redis.client && redis.client.status === "ready") {
     try {
       const key = redis.key.link(link.address, link.domain_id);
-      await redis.client.set(key, JSON.stringify(link), "EX", 60 * 15);
+      await redis.client.set(key, JSON.stringify(link), "EX", 10);
     } catch (err) {
       console.error("[Redis] Cache write error:", err.message);
     }

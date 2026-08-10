@@ -617,21 +617,29 @@ async function stats(req, res) {
   const { user } = req;
   const uuid = req.params.id;
 
-  const link = await query.link.find({
-    ...(!user.admin && { user_id: user.id }),
-    uuid
-  });
+  let match = {};
+  let link = null;
 
-  if (!link) {
-    if (req.isHTML) {
-      res.setHeader("HX-Redirect", "/404");
-      res.status(200).send("");
-      return;
+  if (uuid === "all" || !uuid) {
+    match = { user_id: user.id };
+  } else {
+    link = await query.link.find({
+      ...(!user.admin && { user_id: user.id }),
+      uuid
+    });
+
+    if (!link) {
+      if (req.isHTML) {
+        res.setHeader("HX-Redirect", "/404");
+        res.status(200).send("");
+        return;
+      }
+      throw new CustomError("Link could not be found.");
     }
-    throw new CustomError("Link could not be found.");
+    match = { link_id: link.id };
   }
 
-  const stats = await query.visit.find({ link_id: link.id }, link.visit_count);
+  const stats = await query.visit.find(match, link ? link.visit_count : undefined);
 
   if (!stats) {
     throw new CustomError("Could not get the short link stats. Try again later.");
@@ -639,7 +647,7 @@ async function stats(req, res) {
 
   if (req.isHTML) {
     res.render("partials/stats", {
-      link: utils.sanitize.link_html(link),
+      ...(link && { link: utils.sanitize.link_html(link) }),
       stats,
       map,
     });
@@ -648,7 +656,7 @@ async function stats(req, res) {
 
   return res.status(200).send({
     ...stats,
-    ...utils.sanitize.link(link)
+    ...(link ? utils.sanitize.link(link) : { id: "all" })
   });
 };
 

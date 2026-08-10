@@ -51,11 +51,13 @@ export const AnalyticsPage: React.FC = () => {
     [selectedLinkId, links]
   );
 
-  // Query stats for target link
+  // Query stats for target link or overall workspace
+  const targetId = selectedLinkId === 'all' ? 'all' : (links.find((l) => l.id === selectedLinkId)?.uuid || selectedLinkId);
+
   const { data: _statsData, isLoading: isStatsLoading } = useQuery({
-    queryKey: ['linkStats', targetLink?.id],
-    queryFn: () => linkService.getLinkStats(targetLink?.id ?? ''),
-    enabled: !!targetLink?.id,
+    queryKey: ['linkStats', targetId, selectedPeriod],
+    queryFn: () => linkService.getLinkStats(targetId),
+    enabled: true,
   });
 
   // Calculate aggregated stats across all user links
