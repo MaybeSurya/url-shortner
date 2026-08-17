@@ -51,7 +51,7 @@ if (env.TRUST_PROXY) {
   app.set("trust proxy", true);
 }
 
-app.use(compression());
+app.use(compression({ threshold: 1024 })); // skip compressing tiny responses
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
@@ -110,7 +110,6 @@ app.get([
   "/dashboard",
   "/links",
   "/analytics",
-  "/domains",
   "/settings",
   "/admin",
   "/login",
@@ -130,7 +129,11 @@ app.get([
 app.use("/", routes.render);
 
 // finally, redirect the short link to the target
-app.get("/:id", asyncHandler(links.redirect));
+app.get("/:id", (req, res, next) => {
+  // Prevent search engines from crawling short links
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  asyncHandler(links.redirect)(req, res, next);
+});
 
 // 404 pages that don't exist
 app.get("*", (req, res, next) => {

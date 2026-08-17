@@ -4,6 +4,24 @@ const redis = require("../redis");
 const env = require("../env");
 const utils = require("../utils");
 
+// Cache schema existence checks — avoids 2 DB roundtrips per redirect
+let _hasLogsTable = null;
+let _hasVisitsTable = null;
+
+async function checkLogsTable() {
+  if (_hasLogsTable === null) {
+    _hasLogsTable = await knex.schema.hasTable("visit_logs");
+  }
+  return _hasLogsTable;
+}
+
+async function checkVisitsTable() {
+  if (_hasVisitsTable === null) {
+    _hasVisitsTable = await knex.schema.hasTable("visits");
+  }
+  return _hasVisitsTable;
+}
+
 async function recordVisitDirect(link, visitorInfo = {}) {
   if (!link || !link.id) return;
 
@@ -41,7 +59,7 @@ async function recordVisitDirect(link, visitorInfo = {}) {
 
   // 3. Insert granular record into `visit_logs`
   try {
-    const hasLogsTable = await knex.schema.hasTable("visit_logs");
+    const hasLogsTable = await checkLogsTable();
     if (hasLogsTable) {
       await knex("visit_logs").insert({
         link_id: linkId,
@@ -69,7 +87,7 @@ async function recordVisitDirect(link, visitorInfo = {}) {
 
   // 4. Update or Insert Hourly Aggregated Record in `visits`
   try {
-    const hasVisitsTable = await knex.schema.hasTable("visits");
+    const hasVisitsTable = await checkVisitsTable();
     if (hasVisitsTable) {
       const now = new Date();
       const currentHourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0);
@@ -176,7 +194,7 @@ async function find(match, totalOverride) {
   const now = new Date();
 
   // Helper to aggregate distributions & timeline from visit_logs or visits
-  const hasLogsTable = await knex.schema.hasTable("visit_logs");
+  const hasLogsTable = await checkLogsTable();
 
   let logs = [];
   if (hasLogsTable) {

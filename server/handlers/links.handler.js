@@ -534,13 +534,24 @@ async function redirect(req, res, next) {
     return;
   }
 
-  // 7. Create link visit directly
+  // 7. Create link visit directly (fire-and-forget, does not block redirect)
   const visitorInfo = parseVisitorInfo(req);
   query.visit.recordVisitDirect(link, visitorInfo).catch(err => {
     console.error("[VisitTracking] Record visit direct error:", err.message || err);
   });
 
-  // 8. Redirect to target
+  // 8. Add Cache-Control so Cloudflare can cache this redirect at the edge.
+  //    Only for permanent, unprotected links (no password, no expiry).
+  //    s-maxage=86400  → Cloudflare caches for 24 h
+  //    max-age=300     → browsers cache for 5 minutes
+  if (!link.password && !link.expire_in) {
+    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=86400");
+  } else {
+    // For protected/expiring links, never cache at CDN
+    res.setHeader("Cache-Control", "private, no-store");
+  }
+
+  // 9. Redirect to target
   return res.redirect(link.target);
 };
 

@@ -14,7 +14,6 @@ const ResetPasswordPage = lazy(() => import('./features/auth/ResetPasswordPage')
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const LinksPage = lazy(() => import('./features/links/LinksPage').then(m => ({ default: m.LinksPage })));
 const AnalyticsPage = lazy(() => import('./features/analytics/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
-const DomainsPage = lazy(() => import('./features/domains/DomainsPage').then(m => ({ default: m.DomainsPage })));
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const AdminPage = lazy(() => import('./features/admin/AdminPage').then(m => ({ default: m.AdminPage })));
 const NotFoundPage = lazy(() => import('./features/not-found/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
@@ -109,8 +108,7 @@ const AnimatedRoutes: React.FC = () => {
           />
 
           {/* Protected Workspace Routes */}
-          <Route
-            element={
+          <Route element={
               <ProtectedRoute>
                 <AppLayout />
               </ProtectedRoute>
@@ -119,7 +117,8 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/links" element={<LinksPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/domains" element={<DomainsPage />} />
+            {/* /domains removed — custom domain feature not in use */}
+            <Route path="/domains" element={<Navigate to="/dashboard" replace />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route
               path="/admin"

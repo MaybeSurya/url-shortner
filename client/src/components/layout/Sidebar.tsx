@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Link as LinkIcon,
   BarChart3,
-  Globe,
   Settings,
   ShieldCheck,
   Plus,
@@ -28,8 +27,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, shortcut: '1' },
   { label: 'Links', to: '/links', icon: LinkIcon, shortcut: '2' },
   { label: 'Analytics', to: '/analytics', icon: BarChart3, shortcut: '3' },
-  { label: 'Custom Domains', to: '/domains', icon: Globe, shortcut: '4' },
-  { label: 'Settings', to: '/settings', icon: Settings, shortcut: '5' },
+  { label: 'Settings', to: '/settings', icon: Settings, shortcut: '4' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({

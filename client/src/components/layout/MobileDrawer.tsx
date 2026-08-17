@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Link as LinkIcon,
   BarChart3,
-  Globe,
   Settings,
   ShieldCheck,
   LogOut,
@@ -30,7 +29,6 @@ const DRAWER_ITEMS = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
   { label: 'Links', to: '/links', icon: LinkIcon },
   { label: 'Analytics', to: '/analytics', icon: BarChart3 },
-  { label: 'Custom Domains', to: '/domains', icon: Globe },
   { label: 'Settings', to: '/settings', icon: Settings },
 ];
 
