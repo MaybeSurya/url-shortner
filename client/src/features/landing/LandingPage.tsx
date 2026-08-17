@@ -1,26 +1,7 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useInView } from 'framer-motion';
 import { ArrowRight, Sun, Moon, Monitor, ExternalLink, Github } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-
-// ─── Animation variants ───────────────────────────────────────────────────────
-const fadeUp = {
-  hidden: { opacity: 0, y: 18 },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay },
-  }),
-};
-
-const fadeIn = {
-  hidden: { opacity: 0 },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    transition: { duration: 0.4, ease: 'easeOut', delay },
-  }),
-};
 
 // ─── SURYA Wordmark ───────────────────────────────────────────────────────────
 const SuryaWordmark: React.FC<{ className?: string }> = ({ className = '' }) => (
@@ -33,28 +14,17 @@ const SuryaWordmark: React.FC<{ className?: string }> = ({ className = '' }) => 
 );
 
 // ─── Stat Band Item ───────────────────────────────────────────────────────────
-const StatItem: React.FC<{ value: string; label: string; delay?: number }> = ({
+const StatItem: React.FC<{ value: string; label: string }> = ({
   value,
   label,
-  delay = 0,
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-40px' });
-
   return (
-    <motion.div
-      ref={ref}
-      variants={fadeUp}
-      custom={delay}
-      initial="hidden"
-      animate={inView ? 'visible' : 'hidden'}
-      className="flex flex-col items-center gap-0.5 px-6 md:px-10"
-    >
+    <div className="flex flex-col items-center gap-0.5 px-6 md:px-10 transition-transform duration-200 hover:scale-105">
       <span className="text-xl md:text-2xl font-semibold font-mono text-on-surface tracking-tight">
         {value}
       </span>
       <span className="text-xs text-on-surface-variant">{label}</span>
-    </motion.div>
+    </div>
   );
 };
 
@@ -73,6 +43,13 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-background relative overflow-x-hidden flex flex-col">
+      {/* ── Skip to main content for accessibility ── */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:rounded-lg focus:shadow-lg focus:text-xs focus:font-semibold"
+      >
+        Skip to main content
+      </a>
 
       {/* ── Subtle grid texture ── */}
       <div
@@ -88,12 +65,7 @@ export const LandingPage: React.FC = () => {
       {/* ─────────────────────────────────────────────────────────────
           NAVIGATION
           ───────────────────────────────────────────────────────────── */}
-      <motion.header
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className="sticky top-0 z-50 w-full"
-      >
+      <header className="sticky top-0 z-50 w-full animate-fade-in">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 py-3">
           <div className="flex items-center justify-between h-12 px-4 rounded-xl border border-outline-variant/70 bg-surface-container-lowest/85 backdrop-blur-xl shadow-xs">
 
@@ -139,62 +111,51 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
         </div>
-      </motion.header>
+      </header>
 
       {/* ─────────────────────────────────────────────────────────────
-          HERO
+          MAIN CONTENT LANDMARK
           ───────────────────────────────────────────────────────────── */}
-      <section className="flex-1 flex items-center justify-center px-4 sm:px-6 py-24 md:py-36">
-        <div className="max-w-2xl mx-auto text-center space-y-8">
+      <main id="main-content" className="flex-1 flex flex-col">
+        {/* ── HERO ── */}
+        <section aria-labelledby="hero-title" className="flex-1 flex items-center justify-center px-4 sm:px-6 py-24 md:py-36">
+          <div className="max-w-2xl mx-auto text-center space-y-8">
 
-          {/* Internal badge */}
-          <motion.div
-            variants={fadeIn}
-            custom={0.05}
-            initial="hidden"
-            animate="visible"
-          >
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide text-on-surface-variant border border-outline-variant/80 bg-surface-container-low/60">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-              Internal Platform · Private Access
-            </span>
-          </motion.div>
-
-          {/* Wordmark hero */}
-          <motion.div
-            variants={fadeUp}
-            custom={0.1}
-            initial="hidden"
-            animate="visible"
-            className="space-y-4"
-          >
-            <div className="flex items-center justify-center">
-              <SuryaWordmark className="text-4xl sm:text-6xl md:text-7xl text-on-surface" />
+            {/* Internal badge */}
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide text-on-surface-variant border border-outline-variant/80 bg-surface-container-low/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+                Internal Platform · Private Access
+              </span>
             </div>
 
-            <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed max-w-lg mx-auto">
-              A private URL shortening platform built for speed, reliability, and
-              simplicity. Every link, tracked. Every redirect, instant.
-            </p>
-          </motion.div>
+            {/* Wordmark hero */}
+            <div className="space-y-4">
+              <h1 id="hero-title" className="flex items-center justify-center">
+                <SuryaWordmark className="text-4xl sm:text-6xl md:text-7xl text-on-surface" />
+              </h1>
 
+              <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed max-w-lg mx-auto">
+                A private URL shortening platform built for speed, reliability, and
+                simplicity. Every link, tracked. Every redirect, instant.
+              </p>
+            </div>
 
-        </div>
-      </section>
-
-      {/* ─────────────────────────────────────────────────────────────
-          STATS BAND
-          ───────────────────────────────────────────────────────────── */}
-      <section className="border-t border-outline-variant/60">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
-          <div className="flex flex-wrap items-center justify-center divide-x divide-outline-variant/50">
-            <StatItem value="&lt; 5ms" label="Redirect latency" delay={0} />
-            <StatItem value="100%" label="Uptime SLA" delay={0.06} />
-            <StatItem value="Private" label="No public access" delay={0.12} />
-            <StatItem value="Crafted" label="Built with care" delay={0.18} />
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* ── STATS BAND ── */}
+        <section aria-label="Platform Statistics" className="border-t border-outline-variant/60">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+            <div className="flex flex-wrap items-center justify-center divide-x divide-outline-variant/50">
+              <StatItem value="< 5ms" label="Redirect latency" />
+              <StatItem value="100%" label="Uptime SLA" />
+              <StatItem value="Private" label="No public access" />
+              <StatItem value="Crafted" label="Built with care" />
+            </div>
+          </div>
+        </section>
+      </main>
 
       {/* ─────────────────────────────────────────────────────────────
           FOOTER
@@ -259,7 +220,7 @@ export const LandingPage: React.FC = () => {
                   href="https://github.com/thedevs-network/kutt"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-on-surface hover:underline underline-offset-2 transition-colors"
+                  className="text-primary font-medium hover:underline underline-offset-2 transition-colors"
                 >
                   Kutt
                 </a>{' '}

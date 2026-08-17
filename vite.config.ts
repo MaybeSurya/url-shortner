@@ -14,9 +14,7 @@ export default defineConfig({
     assetsInlineLimit: 4096,
     cssCodeSplit: true,
     reportCompressedSize: false, // faster build output
-    modulePreload: {
-      polyfill: false, // modern browsers + Cloudflare CDN support native preload
-    },
+    modulePreload: false, // prevent auto-preloading heavy app chunks on landing page
     rollupOptions: {
       treeshake: {
         moduleSideEffects: false, // aggressive tree-shaking for smaller bundles

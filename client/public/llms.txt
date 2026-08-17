@@ -1,0 +1,15 @@
+# Surya's URL Shortening Service
+
+> A private, ultra-fast and reliable link management platform built for creators, businesses, and developers.
+
+## Features
+
+- Fast URL redirection with edge caching
+- Detailed analytics & device statistics
+- QR code generation and password protection
+
+## Links
+
+- [Home](https://sury.cc/)
+- [Login](https://sury.cc/login)
+- [Documentation](https://github.com/thedevs-network/kutt)
