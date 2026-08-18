@@ -78,57 +78,75 @@ const AdminRoute: React.FC<{ children: React.ReactElement }> = ({ children }) =>
   return children;
 };
 
-// Routes definition with pure lazy suspense
+// ─── Workspace & Auth Route Layout with Isolated Providers ──────────────────
+const WorkspaceLayout: React.FC = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Routes>
+            {/* Auth Routes */}
+            <Route
+              path="/login"
+              element={
+                <PublicOnlyRoute>
+                  <LoginPage />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route path="/signup" element={<Navigate to="/login" replace />} />
+            <Route
+              path="/reset-password"
+              element={
+                <PublicOnlyRoute>
+                  <ResetPasswordPage />
+                </PublicOnlyRoute>
+              }
+            />
+
+            {/* Protected Workspace Routes */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/links" element={<LinksPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/domains" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminPage />
+                  </AdminRoute>
+                }
+              />
+            </Route>
+
+            {/* Fallback inside workspace */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Suspense>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
+
+// ─── Root Routes Definition ──────────────────────────────────────────────────
 const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
       <Routes>
-        {/* Public Landing & Auth Routes */}
+        {/* Public Landing & Static 404 (Free of Query & Heavy Auth Bundles) */}
         <Route path="/" element={<LandingPage />} />
-        <Route
-          path="/login"
-          element={
-            <PublicOnlyRoute>
-              <LoginPage />
-            </PublicOnlyRoute>
-          }
-        />
-        <Route path="/signup" element={<Navigate to="/login" replace />} />
-        <Route
-          path="/reset-password"
-          element={
-            <PublicOnlyRoute>
-              <ResetPasswordPage />
-            </PublicOnlyRoute>
-          }
-        />
-
-        {/* Protected Workspace Routes */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/links" element={<LinksPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/domains" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <AdminPage />
-              </AdminRoute>
-            }
-          />
-        </Route>
-
-        {/* 404 & Fallback */}
         <Route path="/404" element={<NotFoundPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+
+        {/* All Auth & Dashboard Workspace Routes */}
+        <Route path="/*" element={<WorkspaceLayout />} />
       </Routes>
     </Suspense>
   );
@@ -136,22 +154,18 @@ const AppRoutes: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ConfigProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <BrowserRouter
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true,
-              }}
-            >
-              <AppRoutes />
-            </BrowserRouter>
-          </AuthProvider>
-        </ThemeProvider>
-      </ConfigProvider>
-    </QueryClientProvider>
+    <ConfigProvider>
+      <ThemeProvider>
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
+          <AppRoutes />
+        </BrowserRouter>
+      </ThemeProvider>
+    </ConfigProvider>
   );
 };
 
