@@ -46,6 +46,18 @@ const app = express();
 // Disable X-Powered-By header for security
 app.disable("x-powered-by");
 
+// Server-Timing performance header
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  res.on("finish", () => {
+    const duration = Number(process.hrtime.bigint() - start) / 1e6;
+    try {
+      res.setHeader("Server-Timing", `total;dur=${duration.toFixed(2)}`);
+    } catch (_) {}
+  });
+  next();
+});
+
 // express app setup
 if (env.TRUST_PROXY) {
   app.set("trust proxy", true);

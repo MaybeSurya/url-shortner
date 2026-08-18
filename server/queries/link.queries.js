@@ -7,6 +7,34 @@ const env = require("../env");
 
 const CustomError = utils.CustomError;
 
+// High-speed in-memory L1 cache for sub-millisecond link lookups
+const MEM_CACHE_MAX = 5000;
+const MEM_CACHE_TTL_MS = 60 * 1000; // 60s
+const memoryCache = new Map();
+
+function getMemoryCache(key) {
+  const item = memoryCache.get(key);
+  if (!item) return null;
+  if (Date.now() > item.expires) {
+    memoryCache.delete(key);
+    return null;
+  }
+  return item.value;
+}
+
+function setMemoryCache(key, value) {
+  if (memoryCache.size >= MEM_CACHE_MAX) {
+    const firstKey = memoryCache.keys().next().value;
+    memoryCache.delete(firstKey);
+  }
+  memoryCache.set(key, { value, expires: Date.now() + MEM_CACHE_TTL_MS });
+}
+
+function clearMemoryCacheKey(address, domain_id) {
+  const key = `${address || ""}:${domain_id || ""}`;
+  memoryCache.delete(key);
+}
+
 const selectable = [
   "links.id",
   "links.address",
@@ -177,13 +205,23 @@ async function getAdmin(match, params) {
 }
 
 async function find(match) {
-  if (match.address && match.domain_id !== undefined && env.REDIS_ENABLED && redis.client && redis.client.status === "ready") {
-    try {
-      const key = redis.key.link(match.address, match.domain_id);
-      const cachedLink = await redis.client.get(key);
-      if (cachedLink) return JSON.parse(cachedLink);
-    } catch (err) {
-      console.error("[Redis] Cache read error:", err.message);
+  const memKey = `${match.address || ""}:${match.domain_id || ""}`;
+  if (match.address && match.domain_id !== undefined) {
+    const memCached = getMemoryCache(memKey);
+    if (memCached) return memCached;
+
+    if (env.REDIS_ENABLED && redis.client && redis.client.status === "ready") {
+      try {
+        const key = redis.key.link(match.address, match.domain_id);
+        const cachedLink = await redis.client.get(key);
+        if (cachedLink) {
+          const parsed = JSON.parse(cachedLink);
+          setMemoryCache(memKey, parsed);
+          return parsed;
+        }
+      } catch (err) {
+        console.error("[Redis] Cache read error:", err.message);
+      }
     }
   }
   
@@ -193,13 +231,16 @@ async function find(match) {
     .leftJoin("domains", "links.domain_id", "domains.id")
     .first();
   
-  if (link && env.REDIS_ENABLED && redis.client && redis.client.status === "ready") {
-    try {
-      const key = redis.key.link(link.address, link.domain_id);
-      // Cache for 1 hour — links rarely change, short TTL defeats the cache
-      await redis.client.set(key, JSON.stringify(link), "EX", 3600);
-    } catch (err) {
-      console.error("[Redis] Cache write error:", err.message);
+  if (link) {
+    setMemoryCache(`${link.address || ""}:${link.domain_id || ""}`, link);
+    if (env.REDIS_ENABLED && redis.client && redis.client.status === "ready") {
+      try {
+        const key = redis.key.link(link.address, link.domain_id);
+        // Cache for 1 hour — links rarely change
+        await redis.client.set(key, JSON.stringify(link), "EX", 3600);
+      } catch (err) {
+        console.error("[Redis] Cache write error:", err.message);
+      }
     }
   }
   
@@ -210,7 +251,7 @@ async function create(params) {
   let encryptedPassword = null;
   
   if (params.password) {
-    const salt = await bcrypt.genSalt(12);
+    const salt = await bcrypt.genSalt(10);
     encryptedPassword = await bcrypt.hash(params.password, salt);
   }
   
@@ -235,6 +276,10 @@ async function create(params) {
     link = await knex("links").where("id", link).first();
   }
 
+  if (link) {
+    setMemoryCache(`${link.address || ""}:${link.domain_id || ""}`, link);
+  }
+
   return link;
 }
 
@@ -247,6 +292,7 @@ async function remove(match) {
 
   const deletedLink = await knex("links").where("id", link.id).delete();
 
+  clearMemoryCacheKey(link.address, link.domain_id);
   if (env.REDIS_ENABLED) {
     redis.remove.link(link);
   }
@@ -265,22 +311,26 @@ async function batchRemove(match) {
   
   await query.delete();
   
-  if (env.REDIS_ENABLED) {
-    links.forEach(redis.remove.link);
-  }
+  links.forEach((l) => {
+    clearMemoryCacheKey(l.address, l.domain_id);
+    if (env.REDIS_ENABLED) {
+      redis.remove.link(l);
+    }
+  });
 }
 
 async function update(match, update) {
   if (update.password) {
-    const salt = await bcrypt.genSalt(12);
+    const salt = await bcrypt.genSalt(10);
     update.password = await bcrypt.hash(update.password, salt);
   }
 
-  // if the links' adddress or domain is changed,
+  // if the links' address or domain is changed,
   // make sure to delete the original links from cache 
   let links = []
-  if (env.REDIS_ENABLED && (update.address || update.domain_id)) {
+  if (update.address || update.domain_id) {
     links = await knex("links").select('*').where(match);
+    links.forEach((l) => clearMemoryCacheKey(l.address, l.domain_id));
   }
   
   await knex("links")
@@ -292,9 +342,15 @@ async function update(match, update) {
     .where(normalizeMatch(match))
     .leftJoin("domains", "links.domain_id", "domains.id");
     
-  if (env.REDIS_ENABLED) {
+  updated_links.forEach((l) => {
+    clearMemoryCacheKey(l.address, l.domain_id);
+    if (env.REDIS_ENABLED) {
+      redis.remove.link(l);
+    }
+  });
+  
+  if (env.REDIS_ENABLED && links.length > 0) {
     links.forEach(redis.remove.link);
-    updated_links.forEach(redis.remove.link);
   }
   
   return updated_links;
