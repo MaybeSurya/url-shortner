@@ -16,27 +16,10 @@ export default defineConfig({
     reportCompressedSize: false, // faster build output
     modulePreload: false, // prevent auto-preloading heavy app chunks on landing page
     rollupOptions: {
-      treeshake: {
-        moduleSideEffects: false, // aggressive tree-shaking for smaller bundles
-      },
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/')) {
-            return 'vendor-react';
-          }
-          if (id.includes('node_modules/@tanstack/react-query')) {
-            return 'vendor-query';
-          }
-          if (id.includes('node_modules/recharts')) {
-            return 'vendor-charts';
-          }
-          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/gsap')) {
-            return 'vendor-motion';
-          }
-          if (id.includes('node_modules/lucide-react')) {
-            return 'vendor-icons';
-          }
-        },
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
   },

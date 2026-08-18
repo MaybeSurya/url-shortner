@@ -82,19 +82,58 @@ export interface LinkStatsVisit {
   value: number;
 }
 
-export interface LinkStats {
-  visit_count: number;
+export interface PeriodStatsBreakdown {
   browser: LinkStatsVisit[];
   os: LinkStatsVisit[];
   country: LinkStatsVisit[];
   referrer: LinkStatsVisit[];
-  timeline?: { [key: string]: number };
+  device?: LinkStatsVisit[];
 }
 
-export interface LinkStatsResponse extends LinkStats {
-  id: string;
-  target: string;
-  link: string;
+export interface PeriodStats {
+  stats: PeriodStatsBreakdown;
+  views: number[];
+  total: number;
+}
+
+export interface VisitLog {
+  id?: number | string;
+  link_id?: string;
+  user_id?: string | null;
+  ip?: string | null;
+  country?: string;
+  country_name?: string | null;
+  city?: string | null;
+  region?: string | null;
+  timezone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  continent?: string | null;
+  browser?: string;
+  browser_version?: string | null;
+  os?: string;
+  device_type?: string;
+  referrer?: string;
+  user_agent?: string | null;
+  created_at?: string;
+}
+
+export interface LinkStatsResponse {
+  id?: string;
+  target?: string;
+  link?: string;
+  visit_count?: number | string;
+  browser?: LinkStatsVisit[];
+  os?: LinkStatsVisit[];
+  country?: LinkStatsVisit[];
+  referrer?: LinkStatsVisit[];
+  timeline?: { [key: string]: number };
+  lastDay?: PeriodStats;
+  lastWeek?: PeriodStats;
+  lastMonth?: PeriodStats;
+  lastYear?: PeriodStats;
+  recentLogs?: VisitLog[];
+  updatedAt?: string | Date;
 }
 
 export interface QRXOptions {

@@ -12,7 +12,6 @@ import {
   Globe,
   Smartphone,
   Monitor,
-  Clock,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -33,6 +32,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { linkService } from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 import { staggerContainer, staggerChild } from '../../lib/motion';
+import { LinkStatsVisit, VisitLog, PeriodStats } from '../../types';
 
 type PeriodOption = 'today' | 'yesterday' | '7d' | '30d' | '90d';
 
@@ -50,16 +50,10 @@ export const AnalyticsPage: React.FC = () => {
   const links = useMemo(() => linksData?.data || [], [linksData?.data]);
   const totalLinksCount = linksData?.total || 0;
 
-  // Filter target link or aggregate across all links
-  const targetLink = useMemo(
-    () => (selectedLinkId !== 'all' ? links.find((l) => l.id === selectedLinkId) : links[0]),
-    [selectedLinkId, links]
-  );
-
   // Query stats for target link or overall workspace
-  const targetId = selectedLinkId === 'all' ? 'all' : (links.find((l) => l.id === selectedLinkId)?.uuid || selectedLinkId);
+  const targetId = selectedLinkId === 'all' ? 'all' : (links.find((l) => l.id === selectedLinkId)?.id || selectedLinkId);
 
-  const { data: _statsData, isLoading: isStatsLoading } = useQuery({
+  const { data: statsData, isLoading: isStatsLoading } = useQuery({
     queryKey: ['linkStats', targetId, selectedPeriod],
     queryFn: () => linkService.getLinkStats(targetId),
     enabled: true,
@@ -78,16 +72,16 @@ export const AnalyticsPage: React.FC = () => {
     const sortedLinks = [...links].sort((a, b) => Number(b.visit_count) - Number(a.visit_count)).slice(0, 5);
 
     // Extract real stats from statsData if available
-    const periodStats = selectedPeriod === 'today'
-      ? (_statsData as any)?.lastDay
+    const periodStats: PeriodStats | undefined = selectedPeriod === 'today'
+      ? statsData?.lastDay
       : selectedPeriod === '7d'
-      ? (_statsData as any)?.lastWeek
-      : (_statsData as any)?.lastMonth;
+      ? statsData?.lastWeek
+      : statsData?.lastMonth;
 
-    const realBrowsers: any[] | undefined = periodStats?.stats?.browser;
-    const realOs: any[] | undefined = periodStats?.stats?.os;
-    const realCountries: any[] | undefined = periodStats?.stats?.country;
-    const realReferrers: any[] | undefined = periodStats?.stats?.referrer;
+    const realBrowsers: LinkStatsVisit[] | undefined = periodStats?.stats?.browser;
+    const realOs: LinkStatsVisit[] | undefined = periodStats?.stats?.os;
+    const realCountries: LinkStatsVisit[] | undefined = periodStats?.stats?.country;
+    const realReferrers: LinkStatsVisit[] | undefined = periodStats?.stats?.referrer;
     const realViews: number[] | undefined = periodStats?.views;
 
     const colors = ['#4648d4', '#6063ee', '#006c49', '#825100', '#767586'];
@@ -119,7 +113,7 @@ export const AnalyticsPage: React.FC = () => {
     const referrersData = (realReferrers && realReferrers.length > 0)
       ? realReferrers.map((r) => {
           const name = r.name.replace(/\[dot\]/g, '.');
-          const totalRef = realReferrers.reduce((acc: number, curr: any) => acc + curr.value, 0) || 1;
+          const totalRef = realReferrers.reduce((acc: number, curr: LinkStatsVisit) => acc + curr.value, 0) || 1;
           return { name: name.toLowerCase() === 'direct' ? 'Direct / None' : name, count: r.value, pct: Math.round((r.value / totalRef) * 100) };
         })
       : [
@@ -171,7 +165,7 @@ export const AnalyticsPage: React.FC = () => {
       countriesData,
       timelineData,
     };
-  }, [links, totalLinksCount, selectedPeriod, _statsData]);
+  }, [links, totalLinksCount, selectedPeriod, statsData]);
 
   const isLoading = isLinksLoading || isStatsLoading;
 
@@ -532,11 +526,11 @@ export const AnalyticsPage: React.FC = () => {
           </div>
           <Badge variant="indigo" className="gap-1.5 font-mono text-[10px] py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
-            Live Logs ({((_statsData as any)?.recentLogs || []).length})
+            Live Logs ({(statsData?.recentLogs || []).length})
           </Badge>
         </div>
 
-        {((_statsData as any)?.recentLogs || []).length === 0 ? (
+        {(statsData?.recentLogs || []).length === 0 ? (
           <div className="p-8 text-center text-xs text-on-surface-variant">
             <Globe className="w-8 h-8 mx-auto mb-2 text-on-surface-variant/40" />
             No recent visitor logs recorded yet. Visit your short links to view real-time traffic streams.
@@ -554,7 +548,7 @@ export const AnalyticsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/50">
-                {((_statsData as any)?.recentLogs || []).slice(0, 15).map((log: any, idx: number) => {
+                {(statsData?.recentLogs || []).slice(0, 15).map((log: VisitLog, idx: number) => {
                   const countryCode = (log.country || 'unknown').toUpperCase();
                   const device = (log.device_type || 'desktop').toLowerCase();
                   return (

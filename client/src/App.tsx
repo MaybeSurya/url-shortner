@@ -1,16 +1,15 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AnimatePresence } from 'framer-motion';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ConfigProvider } from './context/ConfigContext';
-import { AppLayout } from './components/layout/AppLayout';
 
 // ─── Lazy Loaded Route Components for Optimal Code Splitting ─────────────────
 const LandingPage = lazy(() => import('./features/landing/LandingPage').then(m => ({ default: m.LandingPage })));
 const LoginPage = lazy(() => import('./features/auth/LoginPage').then(m => ({ default: m.LoginPage })));
 const ResetPasswordPage = lazy(() => import('./features/auth/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
+const AppLayout = lazy(() => import('./components/layout/AppLayout').then(m => ({ default: m.AppLayout })));
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const LinksPage = lazy(() => import('./features/links/LinksPage').then(m => ({ default: m.LinksPage })));
 const AnalyticsPage = lazy(() => import('./features/analytics/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
@@ -44,7 +43,7 @@ const RouteLoadingFallback: React.FC = () => (
           <path d="M21 12a9 9 0 1 1-6.219-8.56" />
         </svg>
       </div>
-      <p className="text-xs font-mono text-on-surface-variant font-medium">Loading component…</p>
+      <p className="text-xs font-mono text-on-surface-variant font-medium">Loading…</p>
     </div>
   </div>
 );
@@ -79,62 +78,58 @@ const AdminRoute: React.FC<{ children: React.ReactElement }> = ({ children }) =>
   return children;
 };
 
-// Animated routes — uses location key for transitions
-const AnimatedRoutes: React.FC = () => {
-  const location = useLocation();
-
+// Routes definition with pure lazy suspense
+const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
-      <AnimatePresence mode="wait" initial={false}>
-        <Routes location={location} key={location.pathname}>
-          {/* Public Landing & Auth Routes */}
-          <Route path="/" element={<LandingPage />} />
+      <Routes>
+        {/* Public Landing & Auth Routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute>
+              <LoginPage />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route path="/signup" element={<Navigate to="/login" replace />} />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicOnlyRoute>
+              <ResetPasswordPage />
+            </PublicOnlyRoute>
+          }
+        />
+
+        {/* Protected Workspace Routes */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/links" element={<LinksPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/domains" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route
-            path="/login"
+            path="/admin"
             element={
-              <PublicOnlyRoute>
-                <LoginPage />
-              </PublicOnlyRoute>
+              <AdminRoute>
+                <AdminPage />
+              </AdminRoute>
             }
           />
-          <Route path="/signup" element={<Navigate to="/login" replace />} />
-          <Route
-            path="/reset-password"
-            element={
-              <PublicOnlyRoute>
-                <ResetPasswordPage />
-              </PublicOnlyRoute>
-            }
-          />
+        </Route>
 
-          {/* Protected Workspace Routes */}
-          <Route element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/links" element={<LinksPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            {/* /domains removed — custom domain feature not in use */}
-            <Route path="/domains" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <AdminPage />
-                </AdminRoute>
-              }
-            />
-          </Route>
-
-          {/* 404 & Fallback */}
-          <Route path="/404" element={<NotFoundPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </AnimatePresence>
+        {/* 404 & Fallback */}
+        <Route path="/404" element={<NotFoundPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
     </Suspense>
   );
 };
@@ -151,7 +146,7 @@ export const App: React.FC = () => {
                 v7_relativeSplatPath: true,
               }}
             >
-              <AnimatedRoutes />
+              <AppRoutes />
             </BrowserRouter>
           </AuthProvider>
         </ThemeProvider>
