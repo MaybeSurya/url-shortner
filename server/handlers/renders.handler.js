@@ -51,6 +51,7 @@ function notFound(req, res) {
   const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
   const targetUrl = req.query.url || `${protocol}://${req.get("host")}${req.originalUrl}`;
   res.status(404).render("404", {
+    layout: false,
     title: "404 - Link Not Found",
     targetUrl,
   });
@@ -76,6 +77,7 @@ function stats(req, res) {
 
 async function banned(req, res) {
   res.render("banned", {
+    layout: false,
     title: "Banned link",
   });
 }

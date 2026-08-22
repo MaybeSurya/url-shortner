@@ -1,17 +1,280 @@
-{{> header}}
-<div id="notfound" class="section-container" style="max-width: 540px; margin: 80px auto; text-align: center; font-family: system-ui, sans-serif;">
-  <div style="font-size: 48px; margin-bottom: 12px;">🔗❌</div>
-  <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">
-    404 | Link Not Found
-  </h2>
-  <div style="background: rgba(0,0,0,0.05); padding: 10px 14px; border-radius: 8px; font-family: monospace; font-size: 13px; word-break: break-all; margin: 16px 0; border: 1px solid rgba(0,0,0,0.1);">
-    {{targetUrl}}
-  </div>
-  <p style="font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 24px;">
-    The link <strong style="word-break: break-all;">{{targetUrl}}</strong> you are trying to access no longer exists on this server. It might have existed earlier and has now been deleted.
-  </p>
-  <a class="back-to-home" href="/" style="display: inline-block; padding: 10px 20px; background: #0f172a; color: #fff; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600;">
-    ← Back to Homepage
-  </a>
-</div>
-{{> footer}}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{{site_name}} | 404 Link Not Found</title>
+  <link rel="icon" sizes="196x196" href="/images/favicon-196x196.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    :root {
+      --bg: #090a0f;
+      --card-bg: rgba(18, 20, 29, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --error-bg: rgba(239, 68, 68, 0.1);
+      --error-border: rgba(239, 68, 68, 0.25);
+      --error-text: #f87171;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      overflow-x: hidden;
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .glow-sphere {
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(239, 68, 68, 0.04) 50%, transparent 70%);
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .grid-pattern {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    header {
+      width: 100%;
+      max-width: 1000px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+    .brand {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.2em;
+      color: #fff;
+      text-decoration: none;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
+    main {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 500px;
+      margin: auto 0;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 40px 32px;
+      text-align: center;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .icon-wrapper {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px;
+      border-radius: 18px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #818cf8;
+      box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.25);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--error-text);
+      border-radius: 9999px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    p {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .url-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .url-box-label {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: block;
+    }
+    .url-box-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #a5b4fc;
+      word-break: break-all;
+    }
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    @media (min-width: 480px) {
+      .actions {
+        flex-direction: row;
+      }
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex: 1;
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #ffffff;
+      color: #0b0c0e;
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+    }
+    .btn-primary:hover {
+      background: #e2e8f0;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    footer {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      text-align: center;
+      padding: 16px 0;
+      color: rgba(148, 163, 184, 0.5);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-sphere"></div>
+  <div class="grid-pattern"></div>
+
+  <header>
+    <a href="/" class="brand">
+      <span class="brand-dot"></span>
+      SURYA
+    </a>
+  </header>
+
+  <main>
+    <div class="card">
+      <div class="icon-wrapper">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          <line x1="2" y1="2" x2="22" y2="22"></line>
+        </svg>
+      </div>
+
+      <div class="badge">404 · LINK NOT FOUND</div>
+      <h1>This link is no longer available</h1>
+      
+      {{#if targetUrl}}
+      <div class="url-box">
+        <span class="url-box-label">Requested URL</span>
+        <div class="url-box-text">{{targetUrl}}</div>
+      </div>
+      {{/if}}
+
+      <p>The short link you are trying to access does not exist or may have been deleted.</p>
+
+      <div class="actions">
+        <a href="/" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          Go to Homepage
+        </a>
+        <a href="/login" class="btn btn-secondary">
+          Sign In
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2026 Surya's URL Shortener. All rights reserved.</p>
+  </footer>
+</body>
+</html>

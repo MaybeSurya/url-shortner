@@ -42,3 +42,4 @@ scratch/
 
 # extension files
 extension
+database_backup.json

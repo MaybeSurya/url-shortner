@@ -24,8 +24,9 @@ function error(error, req, res, _next) {
   }
 
   if (req.isHTML) {
-    res.render("error", {
-      message: "An error occurred. Please try again later."
+    res.status(statusCode).render("error", {
+      layout: false,
+      message: message || "An error occurred. Please try again later."
     });
     return;
   }
