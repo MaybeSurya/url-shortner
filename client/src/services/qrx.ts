@@ -1,6 +1,6 @@
 import { QRXOptions } from '../types';
 
-const QRX_PRIMARY_URL = 'https://qrgen.maybesurya.live/api/qrgen';
+const QRX_PRIMARY_URL = 'https://qrgen.maybesurya.dev/api/qrgen';
 const QRX_FALLBACK_URL = 'https://api.qrserver.com/v1/create-qr-code/';
 
 /**
